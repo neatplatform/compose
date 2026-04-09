@@ -1,0 +1,11 @@
+{{ define "slack.infra.text" }}
+{{ range .Alerts }}
+*Alert:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+*Team:* {{ .Labels.team }}
+*Instance:* {{ .Labels.instance }}
+*Since:* {{ .StartsAt | since | humanizeDuration }}
+*Runbook:* {{ .Annotations.runbook_url }}
+*Dashboard:* {{ .Annotations.dashboard_url }}
+{{ end }}
+{{ end }}

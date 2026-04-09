@@ -1,0 +1,36 @@
+## https://prometheus.io/docs/prometheus/latest/configuration/recording_rules
+## https://prometheus.io/docs/practices/rules
+##
+
+## For recording rules, we explicitly override the global evaluation interval.
+## This is to ensure precomputed metrics (recording rules) are predictable
+## and avoid any surprises if the global evaluation interval is changed. 
+##
+
+groups:
+
+  - name: node:recording
+    interval: 30s
+    rules:
+
+      - record: node:cpu_usage_average:percent
+        expr: >
+          100 - (
+            avg by(instance) (
+              irate(node_cpu_seconds_total{job="node_exporter", mode="idle"}[5m])
+            )
+          ) * 100
+
+      - record: node:memory_usage_average:percent
+        expr: >
+          100 - (
+            avg by(instance) (node_memory_MemAvailable_bytes{job="node_exporter"})
+              / avg by(instance) (node_memory_MemTotal_bytes{job="node_exporter"})
+          ) * 100
+
+      - record: node:disk_usage_average:percent
+        expr: >
+          100 - (
+            avg by(instance) (node_filesystem_avail_bytes{job="node_exporter", mountpoint="/", fstype!~"tmpfs|overlay"})
+              / avg by(instance) (node_filesystem_size_bytes{job="node_exporter", mountpoint="/", fstype!~"tmpfs|overlay"})
+          ) * 100

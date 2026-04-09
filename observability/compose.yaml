@@ -1,0 +1,158 @@
+## https://docs.docker.com/reference/compose-file/
+##
+
+name: observability
+
+# https://docs.docker.com/reference/compose-file/networks
+networks:
+  observability:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/24
+
+volumes:
+  alloy_data: {}
+  prometheus_data: {}
+  alertmanager_data: {}
+  loki_data: {}
+  mimir_data: {}
+  tempo_data: {}
+  pyroscope_data: {}
+  grafana_data: {}
+
+services:
+
+  # Node Exporter – host-level metrics (CPU, RAM, disk, network)
+  #
+  #   https://github.com/prometheus/node_exporter
+  #   https://quay.io/repository/prometheus/node-exporter
+  #
+  #   curl -s http://localhost:9100/metrics
+  #
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.11.0
+    container_name: node-exporter
+    hostname: node-exporter
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "9100:9100"
+    volumes:
+      - /:/host:ro,rslave
+    command:
+      - --path.rootfs=/host
+
+  # cAdvisor – container resource usage and performance metrics
+  #
+  #   https://github.com/google/cadvisor
+  #   https://github.com/google/cadvisor/pkgs/container/cadvisor
+  #
+  #   curl -s http://localhost:8080/metrics
+  #
+  cadvisor:
+    image: ghcr.io/google/cadvisor:0.56.2
+    container_name: cadvisor
+    hostname: cadvisor
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - observability
+    ports:
+      - "8080:8080"
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+
+  # Fluent Bit – high-performance, lightweight log aggregator and shipper
+  #
+  #   https://github.com/fluent/fluent-bit
+  #   https://docs.fluentbit.io/manual/installation/downloads/docker
+  #
+  #   echo '{"timestamp":"2026-04-06T16:59:00.666666-04:00","level":"info","message":"Hello, World!"}' | \
+  #     podman run -i --rm --network observability_observability fluent/fluentd:latest fluent-cat --host fluent-bit --port 24224 app.test
+  #
+  fluent-bit:
+    image: cr.fluentbit.io/fluent/fluent-bit:5.0.2
+    container_name: fluent-bit
+    hostname: fluent-bit
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "2020:2020"
+      - "24224:24224"      # Fluentd forward protocol (TCP)
+      - "24224:24224/udp"  # Fluentd forward protocol (UDP)
+    volumes:
+      - ./fluent-bit:/fluent-bit/etc:ro
+    command:
+      - /fluent-bit/bin/fluent-bit
+      - --config=/fluent-bit/etc/fluent-bit.yaml
+
+  # Prometheus – metrics scraper and storage
+  #
+  #   https://github.com/prometheus/prometheus
+  #   https://quay.io/repository/prometheus/prometheus
+  #
+  #   curl -s http://localhost:9090/metrics
+  #   open http://localhost:9090/query
+  #
+  prometheus:
+    image: quay.io/prometheus/prometheus:v3.11.0
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    container_name: prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.internal:host-gateway"  # Maps hostname → host IP automatically
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus:/etc/prometheus:ro
+    command:
+      # https://prometheus.io/docs/prometheus/latest/command-line/prometheus
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.listen-address=0.0.0.0:9090
+      - --web.enable-lifecycle
+      - --web.enable-admin-api
+
+  # Alertmanager – alerting and notification manager
+  #
+  #   https://github.com/prometheus/alertmanager
+  #   https://quay.io/repository/prometheus/alertmanager
+  #
+  #   open http://localhost:9093
+  #
+  alertmanager:
+    image: quay.io/prometheus/alertmanager:v0.31.1
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    container_name: alertmanager
+    hostname: alertmanager
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "9093:9093"
+    volumes:
+      - alertmanager_data:/alertmanager
+      - ./alertmanager:/etc/alertmanager:ro
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --web.listen-address=0.0.0.0:9093

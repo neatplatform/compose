@@ -1,0 +1,12 @@
+## https://docs.fluentbit.io/manual/data-pipeline/parsers
+## https://docs.fluentbit.io/manual/data-pipeline/parsers/configuring-parser
+##
+
+parsers:
+
+  # https://docs.fluentbit.io/manual/data-pipeline/parsers/json
+  # - name: json
+  #   format: json
+  #   time_key: timestamp
+  #   time_format: "%Y-%m-%dT%H:%M:%S.%L%z"
+  #   time_keep: true  # Keep the original time key.
