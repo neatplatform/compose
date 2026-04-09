@@ -15,6 +15,7 @@ brew install podman-compose
 
 # Desktop app (optional)
 brew install --cask podman-desktop
+```
 
 ## Resources
 
