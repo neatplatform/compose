@@ -1,0 +1,64 @@
+## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit
+## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/yaml
+##
+
+env:
+  FLUSH_INTERVAL: 1
+  LOG_LEVEL: info
+
+service:
+  flush: ${FLUSH_INTERVAL}
+  log_level: ${LOG_LEVEL}
+  parsers_file: parsers.yaml
+  http_server: true
+  http_listen: 0.0.0.0
+  http_port: 2020
+  hot_reload: on
+
+pipeline:
+  inputs:
+
+    # https://docs.fluentbit.io/manual/data-pipeline/inputs/forward
+    - name: forward
+      listen: 0.0.0.0
+      port: 24224
+      buffer_chunk_size: 1M
+      buffer_max_size: 6M
+
+  filters:
+
+    # https://docs.fluentbit.io/manual/data-pipeline/filters/parser
+    # This is useful when a record contains a field with encoded structured data (e.g., JSON).
+    # The parser filter will decode and merge the structured data (fields) into the main record.
+    # - name: parser
+    #   match: '*'
+    #   key_name: log        # Field in the record to parse.
+    #   parser: json         # Parser to use, as defined in parsers.yaml.
+    #   reserve_data: true   # Keep all original fields alongside the parsed ones.
+    #   preserve_key: false  # Drop the raw `log` field after successful parsing.
+
+    # https://docs.fluentbit.io/manual/data-pipeline/filters/modify
+    - name: modify
+      match: '*'
+      rename:
+        - msg message
+
+    # https://docs.fluentbit.io/manual/data-pipeline/filters/record-modifier
+    - name: record_modifier
+      match: '*'
+      record:
+        - hostname ${HOSTNAME}
+
+    # Filter out health check requests.
+    # https://docs.fluentbit.io/manual/data-pipeline/filters/grep
+    - name: grep
+      match: '*'
+      exclude: req_path ^/health
+
+  outputs:
+
+    # https://docs.fluentbit.io/manual/data-pipeline/outputs/standard-output
+    - name: stdout
+      match: '*'
+      format: json_lines
+      json_date_key: false
