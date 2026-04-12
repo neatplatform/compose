@@ -13,14 +13,11 @@ networks:
         - subnet: 172.20.0.0/24
 
 volumes:
-  alloy_data: {}
-  prometheus_data: {}
+  fluent_data:       {}
+  collector_data:    {}
+  alloy_data:        {}
+  prometheus_data:   {}
   alertmanager_data: {}
-  loki_data: {}
-  mimir_data: {}
-  tempo_data: {}
-  pyroscope_data: {}
-  grafana_data: {}
 
 services:
 
@@ -29,17 +26,15 @@ services:
   #   https://github.com/prometheus/node_exporter
   #   https://quay.io/repository/prometheus/node-exporter
   #
-  #   curl -s http://localhost:9100/metrics
-  #
   node-exporter:
-    image: quay.io/prometheus/node-exporter:v1.11.0
+    image: quay.io/prometheus/node-exporter:v1.11.1
     container_name: node-exporter
     hostname: node-exporter
     restart: unless-stopped
     networks:
       - observability
     ports:
-      - "9100:9100"
+      - "2100:9100"
     volumes:
       - /:/host:ro,rslave
     command:
@@ -50,8 +45,6 @@ services:
   #   https://github.com/google/cadvisor
   #   https://github.com/google/cadvisor/pkgs/container/cadvisor
   #
-  #   curl -s http://localhost:8080/metrics
-  #
   cadvisor:
     image: ghcr.io/google/cadvisor:0.56.2
     container_name: cadvisor
@@ -61,7 +54,7 @@ services:
     networks:
       - observability
     ports:
-      - "8080:8080"
+      - "2200:8080"
     devices:
       - /dev/kmsg
     volumes:
@@ -73,9 +66,6 @@ services:
   #   https://github.com/fluent/fluent-bit
   #   https://docs.fluentbit.io/manual/installation/downloads/docker
   #
-  #   echo '{"timestamp":"2026-04-06T16:59:00.666666-04:00","level":"info","message":"Hello, World!"}' | \
-  #     podman run -i --rm --network observability_observability fluent/fluentd:latest fluent-cat --host fluent-bit --port 24224 app.test
-  #
   fluent-bit:
     image: cr.fluentbit.io/fluent/fluent-bit:5.0.2
     container_name: fluent-bit
@@ -84,37 +74,91 @@ services:
     networks:
       - observability
     ports:
-      - "2020:2020"
-      - "24224:24224"      # Fluentd forward protocol (TCP)
-      - "24224:24224/udp"  # Fluentd forward protocol (UDP)
+      - "3100:2020"       # API server
+      - "3110:24224"      # Fluent Forward protocol (TCP)
+      - "3110:24224/udp"  # Fluent Forward protocol (UDP)
+      - "3120:8080"       # Prometheus Remote Write
+      - "3130:4318"       # OTLP HTTP & gRPC protocols
+      - "3180:2021"       # Prometheus metrics
     volumes:
+      - fluent_data:/data
       - ./fluent-bit:/fluent-bit/etc:ro
     command:
       - /fluent-bit/bin/fluent-bit
       - --config=/fluent-bit/etc/fluent-bit.yaml
+
+  # OpenTelemetry Collector – OLTP data collector and ingestor
+  #
+  #   https://github.com/open-telemetry/opentelemetry-collector
+  #   https://opentelemetry.io/docs/collector/install/docker
+  #   https://github.com/open-telemetry/opentelemetry-collector-contrib
+  #
+  opentelemetry-collector:
+    image: otel/opentelemetry-collector-contrib:0.150.0
+    container_name: opentelemetry-collector
+    hostname: opentelemetry-collector
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "3200:13133"   # Health Check extension
+      - "3201:8888"    # Internal Prometheus metrics
+      - "3202:1777"    # Performance Profiler extension
+      - "3203:55679"   # zPages extension
+      - "3210:8006"    # Fluent Forward protocol
+      - "3220:9090"    # Prometheus Remote Write
+      - "3230:4318"    # OTLP HTTP protocol
+      - "3232:4317"    # OTLP gRPC protocol
+      - "3280:8889"    # Prometheus metrics
+    volumes:
+      - collector_data:/data
+      - ./opentelemetry-collector:/etc/opentelemetry-collector:ro
+    command:
+      - --config=/etc/opentelemetry-collector/config.yaml
+
+  # Alloy – OpenTelemetry collector and built-in Prometheus pipelines
+  #
+  #   https://github.com/grafana/alloy
+  #   https://hub.docker.com/r/grafana/alloy
+  #
+  alloy:
+    image: grafana/alloy:v1.15.1
+    container_name: alloy
+    hostname: alloy
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "3300:12345"  # UI & Metrics
+      - "3310:8006"   # Fluent Forward protocol
+      - "3320:8080"   # Prometheus Remote Write
+      - "3330:4318"   # OTLP HTTP protocol
+      - "3332:4317"   # OTLP gRPC protocol
+    volumes:
+      - alloy_data:/data
+      - ./alloy:/etc/alloy:ro
+    command:
+      # https://grafana.com/docs/alloy/latest/reference/cli/run
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/data
+      - --stability.level=experimental
 
   # Prometheus – metrics scraper and storage
   #
   #   https://github.com/prometheus/prometheus
   #   https://quay.io/repository/prometheus/prometheus
   #
-  #   curl -s http://localhost:9090/metrics
-  #   open http://localhost:9090/query
-  #
   prometheus:
-    image: quay.io/prometheus/prometheus:v3.11.0
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    image: quay.io/prometheus/prometheus:v3.11.2
     container_name: prometheus
     hostname: prometheus
     restart: unless-stopped
     networks:
       - observability
     ports:
-      - "9090:9090"
+      - "4100:9090"
     extra_hosts:
       - "host.internal:host-gateway"  # Maps hostname → host IP automatically
     volumes:
@@ -127,28 +171,22 @@ services:
       - --web.listen-address=0.0.0.0:9090
       - --web.enable-lifecycle
       - --web.enable-admin-api
+      - --web.enable-remote-write-receiver
 
   # Alertmanager – alerting and notification manager
   #
   #   https://github.com/prometheus/alertmanager
   #   https://quay.io/repository/prometheus/alertmanager
   #
-  #   open http://localhost:9093
-  #
   alertmanager:
-    image: quay.io/prometheus/alertmanager:v0.31.1
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    image: quay.io/prometheus/alertmanager:v0.32.0
     container_name: alertmanager
     hostname: alertmanager
     restart: unless-stopped
     networks:
       - observability
     ports:
-      - "9093:9093"
+      - "4110:9093"
     volumes:
       - alertmanager_data:/alertmanager
       - ./alertmanager:/etc/alertmanager:ro
