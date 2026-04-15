@@ -1,0 +1,245 @@
+// https://grafana.com/docs/alloy/latest/reference/config-blocks
+// https://grafana.com/docs/alloy/latest/reference/components
+//
+
+// https://grafana.com/docs/alloy/latest/reference/config-blocks/logging
+logging {
+  level  = "info"
+  format = "json"
+}
+
+//────────────────────────────────────────< LOKI PIPELINE >────────────────────────────────────────
+
+// Log Files
+// https://grafana.com/docs/alloy/latest/reference/components/local/local.file_match
+
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.file
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.api
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.relabel
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write
+
+//────────────────────────────────────────< PROMETHEUS PIPELINES >────────────────────────────────────────
+
+// Collect and expose Alloy internal metrics.
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.self
+prometheus.exporter.self "default" {}
+
+// Prometheus Scrape Configs (self-scraping)
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.scrape
+prometheus.scrape "self" {
+  targets         = prometheus.exporter.self.default.targets
+  forward_to      = [prometheus.echo.default.receiver]
+  metrics_path    = "/metrics"  // Default
+  job_name        = "alloy"     // The job label if not already set
+  scrape_interval = "10s"
+}
+
+// Prometheus Remote Write
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.receive_http
+prometheus.receive_http "default" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 8080
+  }
+  forward_to = [prometheus.relabel.default.receiver]
+}
+
+// Relabeling Rules
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.relabel
+prometheus.relabel "default" {
+  forward_to = [prometheus.echo.default.receiver]
+
+  rule {
+    action       = "replace"
+    target_label = "collector"
+    replacement  = "alloy"
+  }
+}
+
+// Standard Output
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.echo
+prometheus.echo "default" {
+  format = "text"  // or openmetrics
+}
+
+// Push metrics to Prometheus/Mimir
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.remote_write
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.write.queue
+
+//────────────────────────────────────────< OPENTELEMETRY PIPELINES >────────────────────────────────────────
+
+// Log Files
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.receiver.filelog
+
+// Convert Loki logs to OpenTelemetry-formatted logs.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.receiver.loki
+
+// Convert Prometheus metrics to OpenTelemetry-formatted metrics.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.receiver.prometheus
+
+// Forward Protocol
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.receiver.fluentforward
+otelcol.receiver.fluentforward "default" {
+  endpoint = "0.0.0.0:8006"
+
+  output {
+    logs = [otelcol.processor.memory_limiter.default.input]
+  }
+}
+
+// OpenTelemetry Protocol (OTLP)
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.receiver.otlp
+otelcol.receiver.otlp "default" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    logs    = [otelcol.processor.memory_limiter.default.input]
+    metrics = [otelcol.processor.memory_limiter.default.input]
+    traces  = [otelcol.processor.memory_limiter.default.input]
+  }
+}
+
+// Bounding memory usage to prevent OOM crashes.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.processor.memory_limiter
+otelcol.processor.memory_limiter "default" {
+  check_interval         = "1s"
+  limit_percentage       = 80  // Max memory usage as a percent of total available (e.g., 80% of 1GB = 800MB)
+  spike_limit_percentage = 20  // Max allowed usage spike between checks (e.g., 20% of 800MB = 160MB)
+
+  output {
+    logs    = [otelcol.processor.resourcedetection.default.input]
+    metrics = [otelcol.processor.resourcedetection.default.input]
+    traces  = [otelcol.processor.resourcedetection.default.input]
+  }
+}
+
+// Add host info to logs, metrics, and traces.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.processor.resourcedetection
+otelcol.processor.resourcedetection "default" {
+  detectors = ["system"]
+  timeout   = "5s"
+  override  = false
+
+  system {
+    hostname_sources = ["os"]
+  }
+
+  output {
+    logs    = [otelcol.processor.attributes.default.input]
+    metrics = [otelcol.processor.attributes.default.input]
+    traces  = [otelcol.processor.attributes.default.input]
+  }
+}
+
+// Modify attributes of logs, metrics, and traces.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.processor.attributes
+otelcol.processor.attributes "default" {
+  action {
+    key    = "collector"
+    value  = "alloy"
+    action = "insert"
+  }
+
+  output {
+    logs    = [otelcol.processor.transform.default.input]
+    metrics = [otelcol.processor.transform.default.input]
+    traces  = [otelcol.processor.transform.default.input]
+  }
+}
+
+// Transform logs, metrics, and traces using custom statements.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.processor.transform
+otelcol.processor.transform "default" {
+  error_mode = "ignore"
+
+  log_statements {
+    context = "log"
+    statements = [
+      `set(attributes["message"], attributes["msg"])`,
+      `delete_key(attributes, "msg")`,
+    ]
+  }
+
+  output {
+    logs    = [otelcol.processor.filter.default.input]
+    metrics = [otelcol.processor.filter.default.input]
+    traces  = [otelcol.processor.filter.default.input]
+  }
+}
+
+// Filter out health check and metrics requests.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.processor.filter
+otelcol.processor.filter "default" {
+  error_mode = "ignore"
+
+  log_conditions {
+    conditions = [
+      `IsMatch(log.attributes["req_path"], "^/health.*")`,
+      `IsMatch(log.attributes["req_path"], "^/metrics.*")`,
+    ]
+  }
+
+  output {
+    logs    = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+// Batch logs, metrics, and traces for performance improvements.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.processor.batch
+otelcol.processor.batch "default" {
+  timeout             = "5s"
+  send_batch_size     = 4096
+  send_batch_max_size = 0  // No max batch size limit
+
+  output {
+    logs    = [otelcol.exporter.debug.default.input, otelcol.exporter.file.logs.input]
+    metrics = [otelcol.exporter.debug.default.input]
+    traces  = [otelcol.exporter.debug.default.input]
+  }
+}
+
+// Standard Output
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.debug
+otelcol.exporter.debug "default" {}
+
+// Files
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.file
+otelcol.exporter.file "logs" {
+  path           = "/data/logs.json"
+  format         = "json"
+  flush_interval = "5s"
+
+  rotation {
+    max_megabytes = 100
+    max_days      = 7
+    max_backups   = 3
+    localtime     = false
+  }
+}
+
+// Convert OpenTelemetry-formatted logs to Loki logs.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.loki
+
+// Convert OpenTelemetry-formatted metrics to Prometheus metrics.
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.prometheus
+
+// Forward data to an upstream collector via OpenTelemetry Protocol (HTTP).
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.otlphttp
+
+// Forward data to an upstream collector via OpenTelemetry Protocol (gRPC).
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.otlp
+
+//────────────────────────────────────────< PYROSCOPE PIPELINES >────────────────────────────────────────
+
+// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.scrape
+// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.receive_http
+// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.write
+
+//────────────────────────────────────────────────────────────────────────────────────────────────────

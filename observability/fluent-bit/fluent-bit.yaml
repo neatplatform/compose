@@ -6,6 +6,7 @@ env:
   FLUSH_INTERVAL: 1
   LOG_LEVEL: info
 
+# https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/yaml/service-section
 service:
   flush: ${FLUSH_INTERVAL}
   log_level: ${LOG_LEVEL}
@@ -13,17 +14,54 @@ service:
   http_server: true
   http_listen: 0.0.0.0
   http_port: 2020
-  hot_reload: on
+  health_check: on
+  hot_reload: true
 
 pipeline:
   inputs:
 
+    # Log Files
+    # https://docs.fluentbit.io/manual/data-pipeline/inputs/tail
+
+    # Forward Protocol
     # https://docs.fluentbit.io/manual/data-pipeline/inputs/forward
     - name: forward
+      tag: logs.forward
       listen: 0.0.0.0
       port: 24224
-      buffer_chunk_size: 1M
-      buffer_max_size: 6M
+      buffer_chunk_size: 1m
+      buffer_max_size: 6m
+
+    # Prometheus Scrape Configs (self-scraping)
+    # https://docs.fluentbit.io/manual/data-pipeline/inputs/prometheus-scrape-metrics
+    - name: prometheus_scrape
+      tag: metrics.prometheus
+      host: 0.0.0.0
+      port: 2020
+      tls: off
+      metrics_path: /api/v1/metrics/prometheus
+      scrape_interval: 10s
+
+    # Prometheus Remote Write
+    # https://docs.fluentbit.io/manual/data-pipeline/inputs/prometheus-remote-write
+    - name: prometheus_remote_write
+      tag: metrics.prometheus
+      listen: 0.0.0.0
+      port: 8080
+      tls: off
+      uri: /api/v1/write
+      buffer_chunk_size: 512k
+      buffer_max_size: 4m
+
+    # OpenTelemetry Protocol (OTLP): The single endpoint supports both gRPC and HTTP protocols.
+    # https://docs.fluentbit.io/manual/data-pipeline/inputs/opentelemetry
+    - name: opentelemetry
+      tag: opentelemetry
+      listen: 0.0.0.0
+      port: 4318
+      tls: off
+      buffer_chunk_size: 512k
+      buffer_max_size: 4m
 
   filters:
 
@@ -39,7 +77,7 @@ pipeline:
 
     # https://docs.fluentbit.io/manual/data-pipeline/filters/modify
     - name: modify
-      match: '*'
+      match: logs.*
       rename:
         - msg message
 
@@ -48,17 +86,40 @@ pipeline:
       match: '*'
       record:
         - hostname ${HOSTNAME}
+        - collector fluent-bit
 
-    # Filter out health check requests.
+    # Filter out health check and metrics requests.
     # https://docs.fluentbit.io/manual/data-pipeline/filters/grep
     - name: grep
       match: '*'
-      exclude: req_path ^/health
+      exclude: req_path ^/(health|metrics).*
 
   outputs:
 
+    # Standard Output
     # https://docs.fluentbit.io/manual/data-pipeline/outputs/standard-output
     - name: stdout
-      match: '*'
+      match: logs.*
       format: json_lines
       json_date_key: false
+
+    # Files
+    # https://docs.fluentbit.io/manual/data-pipeline/outputs/file
+    - name: file
+      match: logs.*
+      path: /data
+
+    # Prometheus metrics for scraping
+    # https://docs.fluentbit.io/manual/data-pipeline/outputs/prometheus-exporter
+    - name: prometheus_exporter
+      match: metrics.*
+      host: 0.0.0.0
+      port: 2021
+      add_label:
+        - collector fluent-bit
+
+    # Push metrics to Prometheus/Mimir
+    # https://docs.fluentbit.io/manual/data-pipeline/outputs/prometheus-remote-write
+
+    # Forward data to an upstream collector via OpenTelemetry Protocol
+    # https://docs.fluentbit.io/manual/data-pipeline/outputs/opentelemetry
