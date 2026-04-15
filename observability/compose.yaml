@@ -87,7 +87,7 @@ services:
       - /fluent-bit/bin/fluent-bit
       - --config=/fluent-bit/etc/fluent-bit.yaml
 
-  # OpenTelemetry Collector – OLTP data collector and ingestor
+  # OpenTelemetry Collector – OTLP data collector and ingestor
   #
   #   https://github.com/open-telemetry/opentelemetry-collector
   #   https://opentelemetry.io/docs/collector/install/docker

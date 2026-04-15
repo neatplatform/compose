@@ -37,12 +37,12 @@ scrape_configs:
   # Host metrics
   - job_name: node-exporter
     static_configs:
-      - targets: ['node-exporter:2100']
+      - targets: ['node-exporter:9100']
 
   # Container metrics
   - job_name: cadvisor
     static_configs:
-      - targets: ['cadvisor:2200']
+      - targets: ['cadvisor:8080']
 
   # Scarpping metrics from services running on the host
   - job_name: host:4000

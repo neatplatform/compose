@@ -16,7 +16,7 @@ import (
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: prom-write <remote_write_url>")
-		return
+		os.Exit(1)
 	}
 
 	url := os.Args[1]
@@ -81,7 +81,7 @@ func sendWriteRequest(url string, req *prompb.WriteRequest) error {
 	// Marshal the request to protobuf.
 	data, err := req.Marshal()
 	if err != nil {
-		return fmt.Errorf("Error on marshalling the request: %w", err)
+		return fmt.Errorf("error on marshalling the request: %w", err)
 	}
 
 	// Compress the data using snappy.
@@ -90,14 +90,16 @@ func sendWriteRequest(url string, req *prompb.WriteRequest) error {
 	// Post to the Prometheus remote write endpoint.
 	httpReq, err := http.NewRequest("POST", url, bytes.NewReader(compressed))
 	if err != nil {
-		return fmt.Errorf("Error on creating the HTTP request: %w", err)
+		return fmt.Errorf("error on creating the HTTP request: %w", err)
 	}
 
 	httpReq.Header.Set("Content-Type", "application/x-protobuf")
 	httpReq.Header.Set("Content-Encoding", "snappy")
 	httpReq.Header.Set("X-Prometheus-Remote-Write-Version", "0.1.0")
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
 
 	resp, err := client.Do(httpReq)
 	if err != nil {
