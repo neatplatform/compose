@@ -1,0 +1,11 @@
+# Test files
+*.test
+*.out
+*.html
+
+# Log files
+*.log
+
+# Compiled files
+/main
+/slack

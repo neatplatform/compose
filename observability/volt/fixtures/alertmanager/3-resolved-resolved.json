@@ -1,0 +1,73 @@
+{
+  "version": "4",
+  "receiver": "Slack Critical",
+  "status": "resolved",
+  "notification_reason": "all alerts resolved",
+  "alerts": [
+    {
+      "status": "resolved",
+      "labels": {
+        "alertname": "InstanceDown",
+        "instance": "echo-service:8080",
+        "job": "echo-service",
+        "collector": "alloy",
+        "ruler": "mimir",
+        "severity": "critical",
+        "scope": "service",
+        "team": "infra"
+      },
+      "annotations": {
+        "summary": "Service echo-service:8080 down",
+        "description": "echo-service:8080 of job echo-service has been unreachable for more than 2 minutes.",
+        "dashboard_url": "http://grafana.example.com/dashboard",
+        "runbook_url": "http://internal.example.com/runbook"
+      },
+      "startsAt": "2026-05-09T07:57:54.064Z",
+      "endsAt": "2026-05-09T08:02:54.064Z",
+      "generatorURL": "http://mimir.example.com/graph?g0.expr=up+%3D%3D+0\u0026g0.tab=1",
+      "fingerprint": "ff8b8cac5410b1b4"
+    },
+    {
+      "status": "resolved",
+      "labels": {
+        "alertname": "InstanceDown",
+        "instance": "echo-service:8443",
+        "job": "echo-service",
+        "collector": "alloy",
+        "ruler": "mimir",
+        "severity": "critical",
+        "scope": "service",
+        "team": "infra"
+      },
+      "annotations": {
+        "summary": "Service echo-service:8443 down",
+        "description": "echo-service:8443 of job echo-service has been unreachable for more than 2 minutes.",
+        "dashboard_url": "http://grafana.example.com/dashboard",
+        "runbook_url": "http://internal.example.com/runbook"
+      },
+      "startsAt": "2026-05-09T07:57:54.064Z",
+      "endsAt": "2026-05-09T08:06:54.064Z",
+      "generatorURL": "http://mimir.example.com/graph?g0.expr=up+%3D%3D+0\u0026g0.tab=1",
+      "fingerprint": "ce61981999e60bb4"
+    }
+  ],
+  "groupLabels": {
+    "alertname": "InstanceDown",
+    "severity": "critical"
+  },
+  "commonLabels": {
+    "alertname": "InstanceDown",
+    "collector": "alloy",
+    "ruler": "mimir",
+    "severity": "critical",
+    "scope": "service",
+    "team": "infra"
+  },
+  "commonAnnotations": {
+    "dashboard_url": "http://grafana.example.com/dashboard",
+    "runbook_url": "http://internal.example.com/runbook"
+  },
+  "externalURL": "http://alertmanager.example.com",
+  "groupKey": "{}/{severity=\"critical\"}:{alertname=\"InstanceDown\", severity=\"critical\"}",
+  "truncatedAlerts": 0
+}

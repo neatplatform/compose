@@ -13,11 +13,17 @@ networks:
         - subnet: 172.20.0.0/24
 
 volumes:
-  fluent_data:       {}
-  collector_data:    {}
-  alloy_data:        {}
-  prometheus_data:   {}
-  alertmanager_data: {}
+  fluentbit_data:     {}
+  opentelemetry_data: {}
+  alloy_data:         {}
+  prometheus_data:    {}
+  loki_data:          {}
+  mimir_data:         {}
+  tempo_data:         {}
+  pyroscope_data:     {}
+  alertmanager_data:  {}
+  mailpit_data:       {}
+  grafana_data:       {}
 
 services:
 
@@ -34,7 +40,7 @@ services:
     networks:
       - observability
     ports:
-      - "2100:9100"
+      - "3100:9100"
     volumes:
       - /:/host:ro,rslave
     command:
@@ -54,7 +60,7 @@ services:
     networks:
       - observability
     ports:
-      - "2200:8080"
+      - "3200:8080"
     devices:
       - /dev/kmsg
     volumes:
@@ -67,52 +73,59 @@ services:
   #   https://docs.fluentbit.io/manual/installation/downloads/docker
   #
   fluent-bit:
-    image: cr.fluentbit.io/fluent/fluent-bit:5.0.2
+    image: cr.fluentbit.io/fluent/fluent-bit:5.0.3
     container_name: fluent-bit
     hostname: fluent-bit
     restart: unless-stopped
     networks:
       - observability
+    extra_hosts:
+      - "host.internal:host-gateway"  # Maps hostname → host IP automatically
     ports:
-      - "3100:2020"       # API server
-      - "3110:24224"      # Fluent Forward protocol (TCP)
-      - "3110:24224/udp"  # Fluent Forward protocol (UDP)
-      - "3120:8080"       # Prometheus Remote Write
-      - "3130:4318"       # OTLP HTTP & gRPC protocols
-      - "3180:2021"       # Prometheus metrics
+      - "4100:2020"       # API server
+      - "4110:24224"      # Fluent Forward protocol (TCP)
+      - "4110:24224/udp"  # Fluent Forward protocol (UDP)
+      - "4130:9090"       # Prometheus Remote Write
+      - "4150:4318"       # OTLP HTTP & gRPC protocols
+      - "4170:2021"       # Prometheus metrics
     volumes:
-      - fluent_data:/data
-      - ./fluent-bit:/fluent-bit/etc:ro
+      - fluentbit_data:/data
+      - ./fluent-bit:/etc/fluent-bit:ro
+      - ./logs:/logs:ro
     command:
       - /fluent-bit/bin/fluent-bit
-      - --config=/fluent-bit/etc/fluent-bit.yaml
+      - --config=/etc/fluent-bit/config.yaml
 
   # OpenTelemetry Collector – OTLP data collector and ingestor
   #
   #   https://github.com/open-telemetry/opentelemetry-collector
   #   https://opentelemetry.io/docs/collector/install/docker
   #   https://github.com/open-telemetry/opentelemetry-collector-contrib
+  #   https://hub.docker.com/r/otel/opentelemetry-collector-contrib
   #
   opentelemetry-collector:
-    image: otel/opentelemetry-collector-contrib:0.150.0
+    image: otel/opentelemetry-collector-contrib:0.150.1
     container_name: opentelemetry-collector
     hostname: opentelemetry-collector
     restart: unless-stopped
     networks:
       - observability
+    extra_hosts:
+      - "host.internal:host-gateway"  # Maps hostname → host IP automatically
     ports:
-      - "3200:13133"   # Health Check extension
-      - "3201:8888"    # Internal Prometheus metrics
-      - "3202:1777"    # Performance Profiler extension
-      - "3203:55679"   # zPages extension
-      - "3210:8006"    # Fluent Forward protocol
-      - "3220:9090"    # Prometheus Remote Write
-      - "3230:4318"    # OTLP HTTP protocol
-      - "3232:4317"    # OTLP gRPC protocol
-      - "3280:8889"    # Prometheus metrics
+      - "4200:13133"   # Health Check extension
+      - "4201:8888"    # Internal Prometheus metrics
+      - "4202:1777"    # Performance Profiler extension
+      - "4203:55679"   # zPages extension
+      - "4210:8006"    # Fluent Forward protocol
+      - "4230:9090"    # Prometheus Remote Write
+      - "4250:4318"    # OTLP HTTP protocol
+      - "4260:4317"    # OTLP gRPC protocol
+      - "4270:8889"    # Prometheus metrics
     volumes:
-      - collector_data:/data
+      - opentelemetry_data:/data
       - ./opentelemetry-collector:/etc/opentelemetry-collector:ro
+      - ./logs:/logs:ro
     command:
       - --config=/etc/opentelemetry-collector/config.yaml
 
@@ -122,56 +135,122 @@ services:
   #   https://hub.docker.com/r/grafana/alloy
   #
   alloy:
-    image: grafana/alloy:v1.15.1
+    image: grafana/alloy:v1.16.0
     container_name: alloy
     hostname: alloy
     restart: unless-stopped
     networks:
       - observability
+    extra_hosts:
+      - "host.internal:host-gateway"  # Maps hostname → host IP automatically
     ports:
-      - "3300:12345"  # UI & Metrics
-      - "3310:8006"   # Fluent Forward protocol
-      - "3320:8080"   # Prometheus Remote Write
-      - "3330:4318"   # OTLP HTTP protocol
-      - "3332:4317"   # OTLP gRPC protocol
+      - "4300:12345"  # UI & Metrics
+      - "4310:8006"   # Fluent Forward protocol
+      - "4320:3100"   # Loki Push API
+      - "4330:9090"   # Prometheus Remote Write
+      - "4340:9999"   # Pyroscope Ingestion API
+      - "4350:4318"   # OTLP HTTP protocol
+      - "4360:4317"   # OTLP gRPC protocol
     volumes:
       - alloy_data:/data
       - ./alloy:/etc/alloy:ro
+      - ./logs:/logs:ro
     command:
       # https://grafana.com/docs/alloy/latest/reference/cli/run
       - run
-      - /etc/alloy/config.alloy
+      - /etc/alloy/
       - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/data
-      - --stability.level=experimental
+      - --stability.level=experimental  # Enable all features
 
-  # Prometheus – metrics scraper and storage
+  # Loki – lightweight log storage
   #
-  #   https://github.com/prometheus/prometheus
-  #   https://quay.io/repository/prometheus/prometheus
+  #   https://github.com/grafana/loki
+  #   https://hub.docker.com/r/grafana/loki
   #
-  prometheus:
-    image: quay.io/prometheus/prometheus:v3.11.2
-    container_name: prometheus
-    hostname: prometheus
+  loki:
+    image: grafana/loki:3.7.1
+    container_name: loki
+    hostname: loki
     restart: unless-stopped
     networks:
       - observability
     ports:
-      - "4100:9090"
-    extra_hosts:
-      - "host.internal:host-gateway"  # Maps hostname → host IP automatically
+      - "5100:3100"  # HTTP API
+      - "5110:9095"  # gRPC API
     volumes:
-      - prometheus_data:/prometheus
-      - ./prometheus:/etc/prometheus:ro
+      - loki_data:/data
+      - ./loki:/etc/loki:ro
     command:
-      # https://prometheus.io/docs/prometheus/latest/command-line/prometheus
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --web.listen-address=0.0.0.0:9090
-      - --web.enable-lifecycle
-      - --web.enable-admin-api
-      - --web.enable-remote-write-receiver
+      - -config.file=/etc/loki/config.yaml
+      - -config.expand-env=true
+
+  # Mimir – horizontally scalable time series database for metrics
+  #
+  #   https://github.com/grafana/mimir
+  #   https://hub.docker.com/r/grafana/mimir
+  #
+  mimir:
+    image: grafana/mimir:3.0.6
+    container_name: mimir
+    hostname: mimir
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "5200:9009"  # HTTP API
+      - "5210:9095"  # gRPC API
+    volumes:
+      - mimir_data:/data
+      - ./mimir:/etc/mimir:ro
+    command:
+      - -config.file=/etc/mimir/config.yaml
+      - -config.expand-env=true
+
+  # Tempo – distributed trace backend
+  #
+  #   https://github.com/grafana/tempo
+  #   https://hub.docker.com/r/grafana/tempo
+  #
+  tempo:
+    image: grafana/tempo:2.10.5
+    container_name: tempo
+    hostname: tempo
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "5300:3200"  # HTTP API
+      - "5310:9095"  # gRPC API
+      - "5350:4318"  # OTLP HTTP protocol
+      - "5360:4317"  # OTLP gRPC protocol
+    volumes:
+      - tempo_data:/data
+      - ./tempo:/etc/tempo:ro
+    command:
+      - -config.file=/etc/tempo/config.yaml
+      - -config.expand-env=true
+
+  # Pyroscope – continuous profiling backend
+  #
+  #   https://github.com/grafana/pyroscope
+  #   https://hub.docker.com/r/grafana/pyroscope
+  #
+  pyroscope:
+    image: grafana/pyroscope:2.0.1
+    container_name: pyroscope
+    hostname: pyroscope
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "5400:4040"  # HTTP API
+      - "5410:9095"  # gRPC API
+    volumes:
+      - pyroscope_data:/data
+      - ./pyroscope:/etc/pyroscope:ro
+    command:
+      - -config.file=/etc/pyroscope/config.yaml
 
   # Alertmanager – alerting and notification manager
   #
@@ -179,18 +258,111 @@ services:
   #   https://quay.io/repository/prometheus/alertmanager
   #
   alertmanager:
-    image: quay.io/prometheus/alertmanager:v0.32.0
+    image: quay.io/prometheus/alertmanager:v0.32.1
     container_name: alertmanager
     hostname: alertmanager
     restart: unless-stopped
     networks:
       - observability
     ports:
-      - "4110:9093"
+      - "6100:9093"
+    environment:
+      - SLACK_APP_AUTH_TOKEN=${SLACK_APP_AUTH_TOKEN}
     volumes:
-      - alertmanager_data:/alertmanager
+      - alertmanager_data:/data
       - ./alertmanager:/etc/alertmanager:ro
     command:
-      - --config.file=/etc/alertmanager/alertmanager.yml
-      - --storage.path=/alertmanager
+      - --config.file=/etc/alertmanager/config.yaml
+      - --storage.path=/data
       - --web.listen-address=0.0.0.0:9093
+
+  # Milpit – local SMTP server for testing alert notifications
+  #
+  #   https://github.com/axllent/mailpit
+  #   https://hub.docker.com/r/axllent/mailpit
+  #
+  mailpit:
+    image: axllent/mailpit:v1.29.7
+    container_name: mailpit
+    hostname: mailpit
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "6200:8025"  # Web app
+      - "6225:1025"  # SMTP API
+    environment:
+      - TZ=America/Toronto
+    volumes:
+      - mailpit_data:/data
+    command:
+      - --listen=0.0.0.0:8025
+      - --database=/data/mailpit.db
+
+  # Alert Receiver – custom webhook receiver
+  #
+  alert-receiver:
+    build: ./volt
+    container_name: alert-receiver
+    hostname: alert-receiver
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "6300:8080"
+    command:
+      - service
+      - webhook
+
+  # Grafana Image Renderer – headless Chromium-based renderer for panels and dashboards
+  #
+  #   https://github.com/grafana/grafana-image-renderer
+  #   https://hub.docker.com/r/grafana/grafana-image-renderer
+  #
+  renderer:
+    image: grafana/grafana-image-renderer:v5.8.3
+    container_name: renderer
+    hostname: renderer
+    restart: unless-stopped
+    networks:
+      - observability
+    ports:
+      - "7100:8081"  # HTTP API
+    command:
+      - server
+      - --log.level=info
+      - --log.format=json
+      - --server.addr=0.0.0.0:8081
+      - --server.auth-token=dummy-token
+
+  # Grafana – metrics + logs + traces in one place
+  #
+  #   https://github.com/grafana/grafana
+  #   https://hub.docker.com/r/grafana/grafana
+  #
+  grafana:
+    image: grafana/grafana:13.0.1
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    depends_on:
+      - loki
+      - mimir
+      - tempo
+      - pyroscope
+      - alertmanager
+      - renderer
+    networks:
+      - observability
+    ports:
+      - "7200:3000"  # HTTP API & Web app
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=coffee
+      - SLACK_APP_AUTH_TOKEN=${SLACK_APP_AUTH_TOKEN}
+    volumes:
+      - grafana_data:/data
+      - ./grafana:/etc/grafana:ro
+    command:
+      # https://grafana.com/docs/grafana/latest/administration/cli
+      -  --config=/etc/grafana/config.ini

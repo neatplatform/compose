@@ -1,0 +1,75 @@
+## https://grafana.com/docs/grafana/latest/alerting/fundamentals/templates
+## https://grafana.com/docs/grafana/latest/alerting/configure-notifications/template-notifications/language
+## https://grafana.com/docs/grafana/latest/alerting/configure-notifications/template-notifications/reference
+##
+
+apiVersion: 1
+
+templates:
+
+  - orgId: 1
+    name: Common Templates
+    template: |
+      {{ define "common.color.red" }}{{ if eq .Status "firing" }}#d63232{{ else }}#36a64f{{ end }}{{ end }}
+      {{ define "common.color.yellow" }}{{ if eq .Status "firing" }}#e6a23c{{ else }}#36a64f{{ end }}{{ end }}
+
+      {{ define "common.text.title" }}
+        {{- if eq .Status "firing" }}{{ if eq .GroupLabels.severity "critical" }}🚨{{ else if eq .GroupLabels.severity "warning" }}⚠️{{ else }}❔{{ end }}{{ else if eq .Status "resolved" }}✅{{ end -}}
+        {{- if len .Alerts.Firing }}{{ .Alerts.Firing | len | printf " [FIRING:%d]" }}{{ end -}}
+        {{- if len .Alerts.Resolved }}{{ .Alerts.Resolved | len | printf " [RESOLVE:%d]" }}{{ end -}}
+        {{- .GroupLabels.SortedPairs.Values | join " " | printf " %s" -}}
+        {{- with .CommonLabels.Remove .GroupLabels.Names }}{{ .Values | join ", " | printf " (%s)" }}{{ end -}}
+      {{ end }}
+
+      {{ define "common.text.body" }}
+        {{- if len .Alerts.Firing -}}
+        **FIRING**
+        {{ template "common.text.alerts" .Alerts.Firing }}
+        {{ if len .Alerts.Resolved }}
+        {{ end }}
+        {{- end -}}
+        {{- if len .Alerts.Resolved -}}
+        **RESOLVED**
+        {{ template "common.text.alerts" .Alerts.Resolved }}
+        {{- end -}}
+      {{ end }}
+
+      {{ define "common.text.alerts" }}
+        {{- range . -}}
+          {{- printf "\nSummary: %s" .Annotations.summary -}}
+          {{- printf "\nDescription: %s\n" .Annotations.description -}}
+          {{- print "\n  Labels:\n\n" -}}
+          {{- range .Labels.SortedPairs }}{{ printf "    %s = %s\n" .Name .Value }}{{ end -}}
+          {{- print "\n  Annotations:\n\n" -}}
+          {{- with .Annotations.Remove (stringSlice "summary" "description") -}}
+            {{- range .SortedPairs }}{{ printf "    %s = %s\n" .Name .Value }}{{ end -}}
+          {{- end -}}
+          {{- print "\n  URLs:\n\n" -}}
+          {{- if len .GeneratorURL }}{{ printf "    Source: %s\n" .GeneratorURL }}{{ end -}}
+          {{- if len .SilenceURL }}{{ printf "    Silence: %s\n" .SilenceURL }}{{ end -}}
+          {{- if len .DashboardURL }}{{ printf "    Dashboard: %s\n" .DashboardURL }}{{ end -}}
+          {{- if len .PanelURL }}{{ printf "    Panel: %s\n" .PanelURL }}{{ end -}}
+        {{- end -}}
+      {{ end }}
+
+  - orgId: 1
+    name: Email Templates
+    template: |
+      {{ define "email.subject" }}
+        {{- template "common.text.title" . -}}
+      {{ end }}
+
+      {{ define "email.message" }}
+        {{- template "common.text.body" . -}}
+      {{ end }}
+
+  - orgId: 1
+    name: Slack Templates
+    template: |
+      {{ define "slack.title" }}
+        {{- template "common.text.title" . -}}
+      {{ end }}
+
+      {{ define "slack.text" }}
+        {{- template "common.text.body" . -}}
+      {{ end }}

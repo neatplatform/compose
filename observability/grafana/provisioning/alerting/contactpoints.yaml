@@ -1,0 +1,91 @@
+## https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points
+##
+
+apiVersion: 1
+
+contactPoints:
+
+  - orgId: 1
+    name: Default
+    receivers:
+      # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-email
+      - uid: email-default
+        name: Email Default
+        type: email
+        disableResolveMessage: false
+        settings:
+          singleEmail: false
+          addresses: notifications@example.com
+          subject: '{{ template "email.subject" . }}'
+          message: '{{ template "email.message" . }}'
+      # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/webhook-notifier
+      - uid: webhook-default
+        name: Webhook Default
+        type: webhook
+        disableResolveMessage: false
+        settings:
+          url: http://alert-receiver:8080/webhook
+
+  - orgId: 1
+    name: Critical
+    receivers:
+      # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-email
+      - uid: email-critical
+        name: Email Critical
+        type: email
+        disableResolveMessage: false
+        settings:
+          singleEmail: false
+          addresses: notifications@example.com
+          subject: '{{ template "email.subject" . }}'
+          message: '{{ template "email.message" . }}'
+      # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-slack
+      - uid: slack-critical
+        name: Slack Critical
+        type: slack
+        disableResolveMessage: false
+        settings:
+          token: "${SLACK_APP_AUTH_TOKEN}"
+          recipient: "#alerts"
+          color: '{{ template "common.color.red" . }}'
+          title: '{{ template "slack.title" . }}'
+          text: '{{ template "slack.text" . }}'
+      # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/webhook-notifier
+      - uid: webhook-critical
+        name: Webhook Critical
+        type: webhook
+        disableResolveMessage: false
+        settings:
+          url: http://alert-receiver:8080/webhook
+
+  - orgId: 1
+    name: Warning
+    receivers:
+      # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-email
+      - uid: email-warning
+        name: Email Warning
+        type: email
+        disableResolveMessage: false
+        settings:
+          singleEmail: false
+          addresses: notifications@example.com
+          subject: '{{ template "email.subject" . }}'
+          message: '{{ template "email.message" . }}'
+      # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-slack
+      - uid: slack-warning
+        name: Slack Warning
+        type: slack
+        disableResolveMessage: false
+        settings:
+          token: "${SLACK_APP_AUTH_TOKEN}"
+          recipient: "#alerts"
+          color: '{{ template "common.color.yellow" . }}'
+          title: '{{ template "slack.title" . }}'
+          text: '{{ template "slack.text" . }}'
+      # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/webhook-notifier
+      - uid: webhook-warning
+        name: Webhook Warning
+        type: webhook
+        disableResolveMessage: false
+        settings:
+          url: http://alert-receiver:8080/webhook

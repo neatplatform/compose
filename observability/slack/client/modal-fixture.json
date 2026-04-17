@@ -1,0 +1,141 @@
+{
+  "type": "modal",
+  "callback_id": "form_modal",
+  "title": {
+    "type": "plain_text",
+    "text": "Fill in the form"
+  },
+  "submit": {
+    "type": "plain_text",
+    "text": "Submit"
+  },
+  "close": {
+    "type": "plain_text",
+    "text": "Cancel"
+  },
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Enter your *age*:"
+      }
+    },
+    {
+      "type": "input",
+      "block_id": "age_block",
+      "label": {
+        "type": "plain_text",
+        "text": "Age"
+      },
+      "element": {
+        "type": "number_input",
+        "action_id": "age_years",
+        "is_decimal_allowed": false,
+        "min_value": "18",
+        "max_value": "100",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "40"
+        }
+      }
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Enter your *email* address:"
+      }
+    },
+    {
+      "type": "input",
+      "block_id": "email_block",
+      "label": {
+        "type": "plain_text",
+        "text": "Email"
+      },
+      "element": {
+        "type": "email_text_input",
+        "action_id": "email_address",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "you@example.com"
+        }
+      }
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Enter your *website* address:"
+      }
+    },
+    {
+      "type": "input",
+      "block_id": "website_block",
+      "label": {
+        "type": "plain_text",
+        "text": "Website"
+      },
+      "element": {
+        "type": "url_text_input",
+        "action_id": "website_address",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "https://example.com"
+        }
+      }
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Upload your *photo*:"
+      }
+    },
+    {
+      "type": "input",
+      "block_id": "photo_block",
+      "label": {
+        "type": "plain_text",
+        "text": "Upload File"
+      },
+      "element": {
+        "type": "file_input",
+        "action_id": "photo_file",
+        "max_files": 1,
+        "filetypes": [
+          "jpg",
+          "png"
+        ]
+      }
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Write a *bio*:"
+      }
+    },
+    {
+      "type": "input",
+      "block_id": "bio_block",
+      "label": {
+        "type": "plain_text",
+        "text": "Bio"
+      },
+      "element": {
+        "type": "rich_text_input",
+        "action_id": "bio_text",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "I ..."
+        }
+      }
+    }
+  ]
+}

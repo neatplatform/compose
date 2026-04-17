@@ -1,0 +1,67 @@
+{
+  "version": "1",
+  "appVersion": "13.0.1",
+  "orgId": 1,
+  "receiver": "Slack Warning",
+  "status": "resolved",
+  "state": "ok",
+  "alerts": [
+    {
+      "orgId": 1,
+      "ruleUID": "service-traffic-without-logs",
+      "status": "resolved",
+      "labels": {
+        "alertname": "DatasourceNoData",
+        "datasource_uid": "loki",
+        "ruler": "grafana",
+        "grafana_folder": "Alert Rules",
+        "rulename": "Service Traffic without Logs",
+        "ref_id": "LogRR",
+        "severity": "warning",
+        "scope": "service",
+        "team": "backend"
+      },
+      "annotations": {
+        "summary": "[no value] receiving traffic but emitting no logs",
+        "description": "[no value] has active traffic according to metrics but has emitted no logs in the last 5 minutes. The logging pipeline may be broken or the service logger may have stopped working. Investigate to ensure logs are being emitted and collected properly.\n",
+        "grafana_state_reason": "MissingSeries",
+        "dashboard_url": "http://grafana.example.com/dashboard",
+        "runbook_url": "http://internal.example.com/runbook"
+      },
+      "startsAt": "2026-05-09T07:59:00Z",
+      "endsAt": "2026-05-09T08:20:00Z",
+      "generatorURL": "http://grafana.example.com/alerting/grafana/service-traffic-without-logs/view?orgId=1",
+      "dashboardURL": "http://grafana.example.com/dashboard",
+      "panelURL": "http://grafana.example.com/panel",
+      "silenceURL": "http://grafana.example.com/alerting/silence/new?alertmanager=grafana\u0026matcher=__alert_rule_uid__%3Dservice-traffic-without-logs\u0026matcher=datasource_uid%3Dloki\u0026matcher=ref_id%3DLogRR\u0026matcher=rulename%3DService+Traffic+without+Logs\u0026matcher=ruler%3Dgrafana\u0026matcher=scope%3Dservice\u0026matcher=severity%3Dwarning\u0026matcher=team%3Dbackend\u0026orgId=1",
+      "values": null,
+      "valueString": "",
+      "fingerprint": "f9bb51f592a41789"
+    }
+  ],
+  "groupLabels": {
+    "alertname": "DatasourceNoData",
+    "severity": "warning"
+  },
+  "commonLabels": {
+    "alertname": "DatasourceNoData",
+    "datasource_uid": "loki",
+    "ruler": "grafana",
+    "grafana_folder": "Alert Rules",
+    "rulename": "Service Traffic without Logs",
+    "ref_id": "LogRR",
+    "severity": "warning",
+    "scope": "service",
+    "team": "backend"
+  },
+  "commonAnnotations": {
+    "summary": "[no value] receiving traffic but emitting no logs",
+    "description": "[no value] has active traffic according to metrics but has emitted no logs in the last 5 minutes. The logging pipeline may be broken or the service logger may have stopped working. Investigate to ensure logs are being emitted and collected properly.\n",
+    "grafana_state_reason": "MissingSeries",
+    "dashboard_url": "http://grafana.example.com/dashboard",
+    "runbook_url": "http://internal.example.com/runbook"
+  },
+  "externalURL": "http://grafana.example.com",
+  "groupKey": "{}/{severity=\"warning\"}:{alertname=\"DatasourceNoData\", severity=\"warning\"}",
+  "truncatedAlerts": 0
+}

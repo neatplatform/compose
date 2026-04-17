@@ -1,0 +1,59 @@
+## https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning
+##
+
+apiVersion: 1
+
+groups:
+
+  - orgId: 1
+    name: grafana-recording-rules
+    folder: Recording Rules
+    interval: 1m
+    rules:
+
+      # Cross-signal recording rule — combines Loki log error rate with Mimir HTTP request rate
+      # to produce an error ratio that neither ruler can compute alone.
+      # Written back to Mimir via the recording rules target we enabled in datasources.yaml.
+      - uid: service-cross-signal-error-ratio
+        title: Service Cross-Signal Error Ratio
+        data:
+
+          # Error log rate from Loki
+          - refId: LogErrorRate
+            datasourceUid: loki
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: |
+                sum by (name, environment, tenant) (
+                  rate({name=~".+", level=~"error|Error|ERROR|critical|Critical|CRITICAL|fatal|Fatal|FATAL"}[2m])
+                )
+
+          # Metric request rate from Mimir
+          - refId: MetricReqRate
+            datasourceUid: mimir
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: |
+                sum by (name, environment, tenant) (
+                  rate(request_duration_seconds_count[2m])
+                )
+
+          # Cross-signal error ratio
+          - refId: ErrorRatio
+            datasourceUid: __expr__
+            model:
+              type: math
+              expression: $LogErrorRate / $MetricReqRate
+
+        isPaused: false
+        labels:
+          scope: service
+          ruler: grafana
+        record:
+          targetDatasourceUid: mimir
+          metric: service:cross_signal_error_ratio:rate2m
+          from: ErrorRatio

@@ -1,0 +1,194 @@
+## https://grafana.com/docs/loki/latest/reference/loki-config-ref
+##
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#supported-contents-and-default-values-of-lokiyaml
+target: all
+auth_enabled: false
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#analytics
+analytics:
+  reporting_enabled: false  # Disable anonymous usage reporting
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#tracing
+tracing:
+  enabled: true
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#server
+server:
+  log_level: info
+  log_format: json
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+
+# Common configuration for all Loki components.
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#common
+common:
+  path_prefix: /data
+  replication_factor: 1
+  storage:
+    filesystem:
+      chunks_directory: /data/chunks
+      rules_directory: /data/rules  # Ruler internal state, not rule definitions
+  ring:
+    kvstore:
+      store: inmemory
+
+# How Loki structures and indexes data over time.
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#schema_config
+schema_config:
+  configs:
+    - from: 2026-04-16
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#distributor
+distributor:
+  otlp_config:
+    # Resource attributes to promote to Loki index labels by default.
+    # Low-cardinality, suitable for indexing.
+    default_resource_attributes_as_index_labels:
+      - service.name
+      - service.namespace
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#ingester
+ingester:
+  lifecycler:
+    ring:
+      replication_factor: 1
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#frontend
+frontend:
+  query_stats_enabled: true
+  log_queries_longer_than: 10s
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#query_scheduler
+query_scheduler:
+  max_outstanding_requests_per_tenant: 10
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#querier
+querier:
+  max_concurrent: 4
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#query_range
+query_range:
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 128
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#compactor
+compactor:
+  working_directory: /data/compactor
+  compaction_interval: 15m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 1
+  delete_request_store: filesystem
+
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#ruler
+ruler:
+  enable_api: true
+  external_url: http://localhost:5100  # Host-accessible links
+  evaluation_interval: 1m
+  poll_interval: 2m
+  rule_path: /tmp/rules  # Path to store temporary rule files
+  notification_queue_capacity: 1000
+  alertmanager_url: http://alertmanager:9093
+  enable_alertmanager_v2: true
+  storage:
+    type: local
+    local:
+      # Source rules from local files.
+      # Loads YAML files for each tenant from <directory>/<tenant_id>/ at startup and on every poll.
+      # When multi-tenancy and auth is disabled, the tenant ID is always "fake".
+      directory: /etc/loki/rules
+  wal:
+    dir: /data/ruler-wal
+    truncate_frequency: 10m
+    min_age: 5m
+    max_age: 1h
+  # Write recording rule metrics to remote metrics backends.
+  remote_write:
+    enabled: true
+    clients:
+      mimir:
+        url: http://mimir:9009/api/v1/push
+
+# Global and per-tenant limits.
+# https://grafana.com/docs/loki/latest/reference/loki-config-ref/#limits_config
+limits_config:
+  volume_enabled: true
+  allow_structured_metadata: true
+  max_structured_metadata_size: 64KB
+  max_structured_metadata_entries_count: 128
+
+  # Ingestion rate limits
+  ingestion_rate_mb: 4
+  ingestion_burst_size_mb: 8
+
+  # Data stream limits
+  max_global_streams_per_user: 5000
+  max_streams_per_user: 1000
+  per_stream_rate_limit: 4MB
+  per_stream_rate_limit_burst: 8MB
+
+  # Data cardinality limits
+  max_line_size: 256KB
+  max_label_name_length: 512
+  max_label_value_length: 1024
+  max_label_names_per_series: 20
+
+  # Query limits
+  max_query_series: 200
+  max_query_length: 31d
+  max_query_parallelism: 8
+  query_timeout: 2m
+
+  # Data retention limits
+  retention_period: 31d
+
+  # OTLP log ingestion configs
+  # Override the default mapping of OTLP format to Loki format.
+  otlp_config:
+    # resourceLogs[].resource.attributes[]
+    resource_attributes:
+      attributes_config:
+        # Promote these resource attributes → Loki labels
+        # Low-cardinality, suitable for indexing.
+        - action: index_label
+          attributes:
+            - collector
+            - environment
+            - tenant
+        # Store these resource attributes → structured metadata
+        # High-cardinality, not suitable for indexing.
+        - action: structured_metadata
+          attributes:
+            - host.name
+        # Ignore these resource attributes.
+        - action: drop
+          regex: .*
+    # resourceLogs[].scopeLogs[].scope.attributes[]
+    scope_attributes: []
+    # resourceLogs[].scopeLogs[].logRecords[].attributes[]
+    log_attributes:
+      # Promote these log attributes → Loki labels
+      # Low-cardinality, suitable for indexing.
+      - action: index_label
+        attributes:
+          - name
+          - environment
+          - tenant
+          - level
+      # Store these log attributes → structured metadata
+      # High-cardinality, not suitable for indexing.
+      - action: structured_metadata
+        regex: .*uuid.*
+      # Ignore these log attributes.
+      - action: drop
+        regex: .*
