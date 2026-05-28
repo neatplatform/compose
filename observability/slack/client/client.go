@@ -120,8 +120,6 @@ func (c *Client) PostMessageResponse(responseURL string, message schema.MessageR
 		return "", fmt.Errorf("error posting message: %w", err)
 	}
 
-	// Slack Web API methods often return HTTP 200 with ok: false for application-level failures.
-
 	c.logger.Info("[client] Posted message response.",
 		slog.String("resp", respBody),
 	)

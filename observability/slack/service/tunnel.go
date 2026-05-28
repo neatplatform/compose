@@ -27,8 +27,8 @@ func (t *tunnel) Open(port int, authToken string) error {
 
 	t.forwarder, err = agent.Forward(ctx,
 		ngrok.WithUpstream(addr),
-		ngrok.WithName("Volt Webhook Service"),
-		ngrok.WithDescription("Exposing the Volt webhook service to the public internet."),
+		ngrok.WithName("Slack Webhook Service"),
+		ngrok.WithDescription("Exposing the Slack service to the public internet."),
 	)
 
 	if err != nil {
