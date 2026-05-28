@@ -120,6 +120,8 @@ func (c *Client) PostMessageResponse(responseURL string, message schema.MessageR
 		return "", fmt.Errorf("error posting message: %w", err)
 	}
 
+	// Slack Web API methods often return HTTP 200 with ok: false for application-level failures.
+
 	c.logger.Info("[client] Posted message response.",
 		slog.String("resp", respBody),
 	)
@@ -135,6 +137,10 @@ func (c *Client) PostMessage(req *schema.PostMessageRequest) (*schema.PostMessag
 
 	if err := c.post(url, req, resp); err != nil {
 		return nil, fmt.Errorf("error posting message: %w", err)
+	}
+
+	if !resp.OK {
+		return nil, fmt.Errorf("error posting message: %s", resp.Error)
 	}
 
 	c.logger.Info("[client] Posted message.",
@@ -154,6 +160,10 @@ func (c *Client) AddReaction(req *schema.AddReactionRequest) (*schema.AddReactio
 		return nil, fmt.Errorf("error adding reaction: %w", err)
 	}
 
+	if !resp.OK {
+		return nil, fmt.Errorf("error adding reaction: %s", resp.Error)
+	}
+
 	c.logger.Info("[client] Added reaction.",
 		slog.Any("resp", resp),
 	)
@@ -169,6 +179,10 @@ func (c *Client) OpenView(req *schema.OpenViewRequest) (*schema.OpenViewResponse
 
 	if err := c.post(url, req, resp); err != nil {
 		return nil, fmt.Errorf("error opening view: %w", err)
+	}
+
+	if !resp.OK {
+		return nil, fmt.Errorf("error opening view: %s", resp.Error)
 	}
 
 	c.logger.Info("[client] Opened view.",

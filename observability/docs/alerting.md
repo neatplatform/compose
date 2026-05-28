@@ -211,7 +211,7 @@ This requires a proper Slack app with the `chat:write` scope instead of an *Inco
     - [Introduction to Grafana Alerting](https://grafana.com/docs/grafana/latest/alerting/fundamentals)
     - [Configure alert rules](https://grafana.com/docs/grafana/latest/alerting/alerting-rules)
       - [Create recording rules](https://grafana.com/docs/grafana/latest/alerting/alerting-rules/create-recording-rules)
-    - *Configurate notifications*
+    - *Configure notifications*
       - [Configure contact points](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points)
       - [Configure notification policies](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/create-notification-policy)
     - *Templates*

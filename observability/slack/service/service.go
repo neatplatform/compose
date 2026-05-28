@@ -648,32 +648,36 @@ func (s *Service) options(w http.ResponseWriter, r *http.Request) {
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		s.logger.Error("[interaction] Error parsing interaction request.", "error", err)
+		s.logger.Error("[option] Error parsing interaction request.", "error", err)
 		http.Error(w, "Failed to parse interaction request.", http.StatusBadRequest)
 		return
 	}
 
 	rawPayload := values.Get("payload")
 	if rawPayload == "" {
-		s.logger.Error("[interaction] Missing interaction payload.", "error", err)
+		s.logger.Error("[option] Missing interaction payload.", "error", err)
 		http.Error(w, "Missing interaction payload.", http.StatusBadRequest)
 		return
 	}
 
 	var base schema.InteractionPayloadBase
 	if err := json.Unmarshal([]byte(rawPayload), &base); err != nil {
-		s.logger.Error("[interaction] Error parsing interaction payload.", "error", err)
+		s.logger.Error("[option] Error parsing interaction payload.", "error", err)
 		http.Error(w, "Failed to parse interaction payload.", http.StatusBadRequest)
 		return
 	}
 
-	if base.Type == "block_suggestion" {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(schema.BlockSuggestionResponse{
-			OptionGroups: locationOptionGroups,
-		})
-
-		s.logger.Info("[interaction] Handled block_suggestion interaction.")
+	if base.Type != "block_suggestion" {
+		s.logger.Error("[option] Unexpected interaction type: " + base.Type)
+		http.Error(w, "Unexpected interaction type.", http.StatusBadRequest)
+		return
 	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(schema.BlockSuggestionResponse{
+		OptionGroups: locationOptionGroups,
+	})
+
+	s.logger.Info("[option] Handled block_suggestion interaction.")
 }

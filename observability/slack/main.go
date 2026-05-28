@@ -76,7 +76,9 @@ func main() {
 
 	// Send a test message with interactive elements, so the user can trigger interactions.
 	c := client.New(logger, authToken)
-	c.PostMessageFixture()
+	if err := c.PostMessageFixture(); err != nil {
+		logger.Error("Failed to post message fixture.", "error", err)
+	}
 
 	// Start the server to handle incoming requests from Slack.
 	s := service.New(logger, signingSecret, c)

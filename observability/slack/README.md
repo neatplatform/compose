@@ -27,7 +27,7 @@ From there, it handles common callback types:
     - `block_actions`: can open a modal for the fixture button action.
     - `shortcut`: parsed and logged.
     - `message_action`: parsed and logged.
-    - `view_submission`, `view_closed`: parsed and logged.
+    - `view_submission`: parsed and logged.
     - `view_closed`: parsed and logged.
   - `/options`: handles options-load callbacks for select menus.
     - `block_suggestion`: responds with options and/or option groups.

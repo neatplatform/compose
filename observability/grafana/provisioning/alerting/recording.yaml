@@ -39,7 +39,7 @@ groups:
             model:
               expr: |
                 sum by (name, environment, tenant) (
-                  rate(request_duration_seconds_count[2m])
+                  rate(http_requests_duration_seconds_count[2m])
                 )
 
           # Cross-signal error ratio

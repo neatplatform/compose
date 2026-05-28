@@ -4,7 +4,7 @@ RUN apk add --no-cache git
 WORKDIR /app
 COPY . .
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o slack
+RUN CGO_ENABLED=0 go build -o slack
 
 # FINAL STAGE
 FROM alpine:3.23.4

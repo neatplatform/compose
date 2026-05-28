@@ -86,7 +86,7 @@ A tiered port scheme makes it easy to identify which tier and service you are co
 | | | | `GET /api/datasources` | *Data Sources* |
 | | | | `GET /api/v1/provisioning/alert-rules/export` | *Alert Rules* |
 | | | | `GET /api/v1/provisioning/contact-points/export` | *Contact Points* |
-| | | | `GET /api/v1/provisioning/policies/export` | *Notification Polices* |
+| | | | `GET /api/v1/provisioning/policies/export` | *Notification Policies* |
 
 ## Resources
 

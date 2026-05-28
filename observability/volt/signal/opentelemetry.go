@@ -27,9 +27,9 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
 )
 
-const (
-	version = "dev"
-)
+const version = "dev"
+
+type shutdownFunc func(ctx context.Context) error
 
 func runOpenTelemetry(args []string) {
 	fs := flag.NewFlagSet("opentelemetry", flag.ExitOnError)
@@ -62,11 +62,13 @@ func runOpenTelemetry(args []string) {
 
 	// Logs
 	{
-		logger, err := newOTelLogger(ctx, *grpc, addr, name, version, baseKV...)
+		logger, shutdown, err := newOTelLogger(ctx, *grpc, addr, name, version, baseKV...)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		defer shutdown(ctx)
 
 		for i, msg := range messages {
 			sendOTelLog(ctx, logger, time.Now(), "info", msg,
@@ -80,11 +82,13 @@ func runOpenTelemetry(args []string) {
 
 	// Metrics
 	{
-		meter, err := newOTelMeter(ctx, *grpc, addr, name, version, baseKV...)
+		meter, shutdown, err := newOTelMeter(ctx, *grpc, addr, name, version, baseKV...)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		defer shutdown(ctx)
 
 		counter, err := meter.Int64Counter("demo_opentelemetry_requests_total")
 		if err != nil {
@@ -106,23 +110,26 @@ func runOpenTelemetry(args []string) {
 
 	// Traces
 	{
-		tracer, err := newOTelTracer(ctx, *grpc, addr, name, version, baseKV...)
+		tracer, shutdown, err := newOTelTracer(ctx, *grpc, addr, name, version, baseKV...)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		defer shutdown(ctx)
 
 		ctx, span := tracer.Start(ctx, "demo-opentelemetry-trace")
 		defer span.End()
 
 		for i, msg := range messages {
 			_, span := tracer.Start(ctx, fmt.Sprintf("demo-op-%d", i+1))
-			defer span.End()
 
 			span.SetAttributes(
 				attribute.String("uuid", uuid.NewString()),
 				attribute.String("message", msg),
 			)
+
+			span.End()
 
 			fmt.Printf("Sent span:  #%-2d  message=%s\n", i+1, msg)
 			time.Sleep(randMs(500, 1000))
@@ -130,7 +137,7 @@ func runOpenTelemetry(args []string) {
 	}
 }
 
-func newOTelLogger(ctx context.Context, grpc bool, endpoint, name, version string, kv ...string) (log.Logger, error) {
+func newOTelLogger(ctx context.Context, grpc bool, endpoint, name, version string, kv ...string) (log.Logger, shutdownFunc, error) {
 	var err error
 	var exp logsdk.Exporter
 
@@ -149,7 +156,7 @@ func newOTelLogger(ctx context.Context, grpc bool, endpoint, name, version strin
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	prov := logsdk.NewLoggerProvider(
@@ -166,7 +173,7 @@ func newOTelLogger(ctx context.Context, grpc bool, endpoint, name, version strin
 		log.WithInstrumentationVersion(version),
 	)
 
-	return logger, nil
+	return logger, prov.Shutdown, nil
 }
 
 func sendOTelLog(ctx context.Context, logger log.Logger, t time.Time, level, message string, kv ...string) {
@@ -204,7 +211,7 @@ func sendOTelLog(ctx context.Context, logger log.Logger, t time.Time, level, mes
 	logger.Emit(ctx, r)
 }
 
-func newOTelMeter(ctx context.Context, grpc bool, endpoint, name, version string, kv ...string) (metric.Meter, error) {
+func newOTelMeter(ctx context.Context, grpc bool, endpoint, name, version string, kv ...string) (metric.Meter, shutdownFunc, error) {
 	var err error
 	var exp metricsdk.Exporter
 
@@ -223,7 +230,7 @@ func newOTelMeter(ctx context.Context, grpc bool, endpoint, name, version string
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	prov := metricsdk.NewMeterProvider(
@@ -240,10 +247,10 @@ func newOTelMeter(ctx context.Context, grpc bool, endpoint, name, version string
 		metric.WithInstrumentationVersion(version),
 	)
 
-	return meter, nil
+	return meter, prov.Shutdown, nil
 }
 
-func newOTelTracer(ctx context.Context, grpc bool, endpoint, name, version string, kv ...string) (trace.Tracer, error) {
+func newOTelTracer(ctx context.Context, grpc bool, endpoint, name, version string, kv ...string) (trace.Tracer, shutdownFunc, error) {
 	var err error
 	var exp tracesdk.SpanExporter
 
@@ -262,7 +269,7 @@ func newOTelTracer(ctx context.Context, grpc bool, endpoint, name, version strin
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	prov := tracesdk.NewTracerProvider(
@@ -280,7 +287,7 @@ func newOTelTracer(ctx context.Context, grpc bool, endpoint, name, version strin
 		trace.WithInstrumentationVersion(version),
 	)
 
-	return tracer, nil
+	return tracer, prov.Shutdown, nil
 }
 
 func createResource(name, version string, kv []string) *resource.Resource {

@@ -72,7 +72,7 @@ sending to a v2 endpoint returns an `unsupported proto version` error.
 ## Resources
 
   - **Protocols**
-    - [Forward Protocol Specification v1]()
+    - [Forward Protocol Specification v1](https://github.com/fluent/fluentd/wiki/Forward-Protocol-Specification-v1)
     - [Loki HTTP Push API](https://grafana.com/docs/loki/latest/reference/loki-http-api/#ingest-logs)
     - [Prometheus Remote-Write 1.0 specification](https://prometheus.io/docs/specs/prw/remote_write_spec)
     - [Prometheus Remote-Write 2.0 specification](https://prometheus.io/docs/specs/prw/remote_write_spec_2_0)

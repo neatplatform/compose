@@ -17,7 +17,7 @@ datasources:
     jsonData:
       prometheusType: Mimir              # Enable Mimir-specific features
       httpMethod: POST                   # Use POST for queries to support larger query payloads
-      manageAlerts: true                 # Manage Mimir-mamanged alerts in Grafana Alerting UI
+      manageAlerts: true                 # Manage Mimir-managed alerts in Grafana Alerting UI
       alertmanagerUid: grafana           # Route Mimir-managed alerts to the built-in Grafana Alertmanager
       allowAsRecordingRulesTarget: true  # Allow Mimir to be used as a target for writing Grafana-managed recording rules
       exemplarTraceIdDestinations:
@@ -36,7 +36,7 @@ datasources:
     jsonData:
       timeout: 60               # HTTP request timeout in seconds
       maxLines: 1000            # Maximum number of log lines returned by Loki
-      manageAlerts: true        # Manage Loki-mamanged alerts in Grafana Alerting UI
+      manageAlerts: true        # Manage Loki-managed alerts in Grafana Alerting UI
       alertmanagerUid: grafana  # Route Loki-managed alerts to the built-in Grafana Alertmanager
       derivedFields:            # Extract new fields from logs and create a link from the value of the field
         - name: TraceID
