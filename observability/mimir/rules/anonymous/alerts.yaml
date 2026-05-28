@@ -1,0 +1,92 @@
+## Mimir supports Prometheus-compatible alerting rules.
+##
+## https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules
+## https://prometheus.io/docs/practices/alerting
+##
+
+groups:
+
+  - name: service-alerts
+    interval: 1m
+    limit: 10
+    rules:
+
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          scope: service
+          team: infra
+          ruler: mimir
+        annotations:
+          summary: "Service {{ $labels.instance }} down"
+          description: >
+            {{ $labels.instance }} of job {{ $labels.job }} has been unreachable for more than 2 minutes.
+          runbook_url: "TBD"
+          dashboard_url: "TBD"
+
+  - name: node-alerts
+    interval: 1m
+    limit: 10
+    rules:
+
+      - alert: HighCPUUsage
+        expr: node:cpu_utilization:ratio_avg > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          scope: node
+          team: infra
+          ruler: mimir
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: >
+            CPU usage is {{ $value | humanizePercentage }} (threshold: 80%) on {{ $labels.instance }}.
+          runbook_url: "TBD"
+          dashboard_url: "TBD"
+
+      - alert: HighMemoryUsage
+        expr: node:memory_utilization:ratio > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          scope: node
+          team: infra
+          ruler: mimir
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: >
+            Memory usage is {{ $value | humanizePercentage }} (threshold: 80%) on {{ $labels.instance }}.
+          runbook_url: "TBD"
+          dashboard_url: "TBD"
+
+      - alert: HighDiskUsage
+        expr: node:filesystem_utilization:ratio > 0.80
+        for: 10m
+        labels:
+          severity: warning
+          scope: node
+          team: infra
+          ruler: mimir
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: >
+            Disk usage is {{ $value | humanizePercentage }} (threshold: 80%) on {{ $labels.instance }}.
+          runbook_url: "TBD"
+          dashboard_url: "TBD"
+
+      - alert: CriticalDiskUsage
+        expr: node:filesystem_utilization:ratio > 0.90
+        for: 5m
+        labels:
+          severity: critical
+          scope: node
+          team: infra
+          ruler: mimir
+        annotations:
+          summary: "Critical disk usage on {{ $labels.instance }}"
+          description: >
+            Disk usage is {{ $value | humanizePercentage }} (threshold: 90%) on {{ $labels.instance }}.
+          runbook_url: "TBD"
+          dashboard_url: "TBD"

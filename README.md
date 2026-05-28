@@ -15,6 +15,11 @@ brew install podman-compose
 
 # Desktop app (optional)
 brew install --cask podman-desktop
+
+# Start the Podman machine in rootful mode
+podman machine init
+podman machine set --rootful
+podman machine start
 ```
 
 ## Resources

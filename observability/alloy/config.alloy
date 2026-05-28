@@ -11,12 +11,100 @@ logging {
 //────────────────────────────────────────< LOKI PIPELINE >────────────────────────────────────────
 
 // Log Files
-// https://grafana.com/docs/alloy/latest/reference/components/local/local.file_match
-
 // https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.file
+loki.source.file "tmpfiles" {
+  targets    = [
+    {"__path__" = "/logs/*.log"},
+  ]
+
+  file_match {
+    enabled     = true
+    sync_period = "10s"
+  }
+
+  forward_to = [loki.relabel.default.receiver]
+}
+
 // https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.api
+loki.source.api "default" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 3100
+  }
+
+  labels = {
+    collector = "alloy",
+  }
+
+  forward_to = [loki.relabel.default.receiver]
+}
+
 // https://grafana.com/docs/alloy/latest/reference/components/loki/loki.relabel
+loki.relabel "default" {
+  forward_to = [loki.process.default.receiver]
+
+  rule {
+    action        = "replace"
+    source_labels = ["env"]
+    target_label  = "environment"
+    regex         = "(.+)"
+    replacement   = "$1"
+  }
+
+  rule {
+    action = "labeldrop"
+    regex  = "^env$"
+  }
+
+  rule {
+    action        = "replace"
+    source_labels = ["msg"]
+    target_label  = "message"
+    regex         = "(.+)"
+    replacement   = "$1"
+  }
+
+  rule {
+    action = "labeldrop"
+    regex  = "^msg$"
+  }
+}
+
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process
+loki.process "default" {
+  forward_to = [loki.echo.default.receiver, loki.write.default.receiver]
+
+  stage.json {
+    expressions = {
+      name       = "name",
+      req_method = "req_method",
+      req_path   = "req_path",
+    }
+  }
+
+  stage.labels {
+    values = {
+      name = "name",
+    }
+  }
+
+  stage.drop {
+    drop_counter_reason = "drop_noise"
+    source              = "req_path"
+    expression          = "^/(health|healthy|ready|metrics)"
+  }
+}
+
+// Standard Output – For troubleshooting and demonstration purposes
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.echo
+loki.echo "default" {}
+
 // https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
 
 //────────────────────────────────────────< PROMETHEUS PIPELINES >────────────────────────────────────────
 
@@ -24,30 +112,20 @@ logging {
 // https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.self
 prometheus.exporter.self "default" {}
 
-// Prometheus Scrape Configs (self-scraping)
-// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.scrape
-prometheus.scrape "self" {
-  targets         = prometheus.exporter.self.default.targets
-  forward_to      = [prometheus.echo.default.receiver]
-  metrics_path    = "/metrics"  // Default
-  job_name        = "alloy"     // The job label if not already set
-  scrape_interval = "10s"
-}
-
 // Prometheus Remote Write
 // https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.receive_http
 prometheus.receive_http "default" {
   http {
     listen_address = "0.0.0.0"
-    listen_port    = 8080
+    listen_port    = 9090
   }
+
   forward_to = [prometheus.relabel.default.receiver]
 }
 
-// Relabeling Rules
 // https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.relabel
 prometheus.relabel "default" {
-  forward_to = [prometheus.echo.default.receiver]
+  forward_to = [prometheus.echo.default.receiver, prometheus.remote_write.mimir.receiver]
 
   rule {
     action       = "replace"
@@ -56,15 +134,51 @@ prometheus.relabel "default" {
   }
 }
 
-// Standard Output
+// Standard Output – For troubleshooting and demonstration purposes
 // https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.echo
 prometheus.echo "default" {
   format = "text"  // or openmetrics
 }
 
-// Push metrics to Prometheus/Mimir
+// Send metrics to Mimir
 // https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.remote_write
-// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.write.queue
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://mimir:9009/api/v1/push"
+  }
+}
+
+//────────────────────────────────────────< PYROSCOPE PIPELINES >────────────────────────────────────────
+
+// Pyroscope Ingestion API
+// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.receive_http
+pyroscope.receive_http "default" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 9999
+  }
+
+  forward_to = [pyroscope.relabel.default.receiver]
+}
+
+// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.relabel
+pyroscope.relabel "default" {
+  forward_to = [pyroscope.write.default.receiver]
+
+  rule {
+    action       = "replace"
+    target_label = "collector"
+    replacement  = "alloy"
+  }
+}
+
+// Send profiling data to Pyroscope
+// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.write
+pyroscope.write "default" {
+  endpoint {
+    url = "http://pyroscope:4040"
+  }
+}
 
 //────────────────────────────────────────< OPENTELEMETRY PIPELINES >────────────────────────────────────────
 
@@ -121,7 +235,7 @@ otelcol.processor.memory_limiter "default" {
 // Add host info to logs, metrics, and traces.
 // https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.processor.resourcedetection
 otelcol.processor.resourcedetection "default" {
-  detectors = ["system"]
+  detectors = ["env", "system"]
   timeout   = "5s"
   override  = false
 
@@ -158,9 +272,19 @@ otelcol.processor.transform "default" {
   error_mode = "ignore"
 
   log_statements {
+    context = "resource"
+    statements = [
+      `set(attributes["environment"], attributes["env"]) where attributes["env"] != nil`,
+      `delete_key(attributes, "env")`,
+    ]
+  }
+
+  log_statements {
     context = "log"
     statements = [
-      `set(attributes["message"], attributes["msg"])`,
+      `set(attributes["environment"], attributes["env"]) where attributes["env"] != nil`,
+      `delete_key(attributes, "env")`,
+      `set(attributes["message"], attributes["msg"]) where attributes["msg"] != nil`,
       `delete_key(attributes, "msg")`,
     ]
   }
@@ -178,9 +302,26 @@ otelcol.processor.filter "default" {
   error_mode = "ignore"
 
   log_conditions {
+    context = "log"
     conditions = [
-      `IsMatch(log.attributes["req_path"], "^/health.*")`,
-      `IsMatch(log.attributes["req_path"], "^/metrics.*")`,
+      `IsMatch(attributes["req_path"], "^/health.*")`,
+      `IsMatch(attributes["req_path"], "^/metrics.*")`,
+    ]
+  }
+
+  metric_conditions {
+    context = "metric"
+    conditions = [
+      `IsMatch(metadata["req_path"], "^/health.*")`,
+      `IsMatch(metadata["req_path"], "^/metrics.*")`,
+    ]
+  }
+
+  trace_conditions {
+    context = "span"
+    conditions = [
+      `IsMatch(attributes["req_path"], "^/health.*")`,
+      `IsMatch(attributes["req_path"], "^/metrics.*")`,
     ]
   }
 
@@ -196,20 +337,20 @@ otelcol.processor.filter "default" {
 otelcol.processor.batch "default" {
   timeout             = "5s"
   send_batch_size     = 4096
-  send_batch_max_size = 0  // No max batch size limit
+  send_batch_max_size = 8192
 
   output {
-    logs    = [otelcol.exporter.debug.default.input, otelcol.exporter.file.logs.input]
-    metrics = [otelcol.exporter.debug.default.input]
-    traces  = [otelcol.exporter.debug.default.input]
+    logs    = [otelcol.exporter.debug.default.input, otelcol.exporter.file.logs.input, otelcol.exporter.loki.default.input]
+    metrics = [otelcol.exporter.debug.default.input, otelcol.exporter.file.metrics.input, otelcol.exporter.prometheus.default.input]
+    traces  = [otelcol.exporter.debug.default.input, otelcol.exporter.file.traces.input, otelcol.exporter.otlp.tempo.input]
   }
 }
 
-// Standard Output
+// Standard Output – For troubleshooting and demonstration purposes
 // https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.debug
 otelcol.exporter.debug "default" {}
 
-// Files
+// Files (logs) – For troubleshooting and demonstration purposes
 // https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.file
 otelcol.exporter.file "logs" {
   path           = "/data/logs.json"
@@ -224,22 +365,60 @@ otelcol.exporter.file "logs" {
   }
 }
 
+// Files (metrics) – For troubleshooting and demonstration purposes
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.file
+otelcol.exporter.file "metrics" {
+  path           = "/data/metrics.json"
+  format         = "json"
+  flush_interval = "5s"
+
+  rotation {
+    max_megabytes = 100
+    max_days      = 7
+    max_backups   = 3
+    localtime     = false
+  }
+}
+
+// Files (traces) – For troubleshooting and demonstration purposes
+// https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.file
+otelcol.exporter.file "traces" {
+  path           = "/data/traces.json"
+  format         = "json"
+  flush_interval = "5s"
+
+  rotation {
+    max_megabytes = 100
+    max_days      = 7
+    max_backups   = 3
+    localtime     = false
+  }
+}
+
 // Convert OpenTelemetry-formatted logs to Loki logs.
 // https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.loki
+otelcol.exporter.loki "default" {
+  forward_to = [loki.write.default.receiver]
+}
 
 // Convert OpenTelemetry-formatted metrics to Prometheus metrics.
 // https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.prometheus
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
 
-// Forward data to an upstream collector via OpenTelemetry Protocol (HTTP).
+// Send data via OpenTelemetry Protocol (HTTP)
 // https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.otlphttp
 
-// Forward data to an upstream collector via OpenTelemetry Protocol (gRPC).
+// Send traces to Tempo via OTLP gRPC
 // https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.otlp
-
-//────────────────────────────────────────< PYROSCOPE PIPELINES >────────────────────────────────────────
-
-// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.scrape
-// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.receive_http
-// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.write
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
 
 //────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,67 @@
+{{ define "common.color.red" }}{{ if eq .Status "firing" }}#d63232{{ else }}#36a64f{{ end }}{{ end }}
+{{ define "common.color.yellow" }}{{ if eq .Status "firing" }}#e6a23c{{ else }}#36a64f{{ end }}{{ end }}
+
+{{ define "common.text.title" }}
+  {{- if eq .Status "firing" }}{{ if eq .GroupLabels.severity "critical" }}🚨{{ else if eq .GroupLabels.severity "warning" }}⚠️{{ else }}❔{{ end }}{{ else if eq .Status "resolved" }}✅{{ end -}}
+  {{- if len .Alerts.Firing }}{{ .Alerts.Firing | len | printf " [FIRING:%d]" }}{{ end -}}
+  {{- if len .Alerts.Resolved }}{{ .Alerts.Resolved | len | printf " [RESOLVE:%d]" }}{{ end -}}
+  {{- .GroupLabels.SortedPairs.Values | join " " | printf " %s" -}}
+  {{- with .CommonLabels.Remove .GroupLabels.Names }}{{ .Values | join ", " | printf " (%s)" }}{{ end -}}
+{{ end }}
+
+{{ define "common.text.body" }}
+  {{- if len .Alerts.Firing -}}
+  **FIRING**
+  {{ template "common.text.alerts" .Alerts.Firing }}
+  {{ if len .Alerts.Resolved }}
+  {{ end }}
+  {{- end -}}
+  {{- if len .Alerts.Resolved -}}
+  **RESOLVED**
+  {{ template "common.text.alerts" .Alerts.Resolved }}
+  {{- end -}}
+{{ end }}
+
+{{ define "common.text.alerts" }}
+  {{- range . -}}
+    {{- printf "\nSummary: %s" .Annotations.summary -}}
+    {{- printf "\nDescription: %s\n" .Annotations.description -}}
+    {{- print "\n  Labels:\n\n" -}}
+    {{- range .Labels.SortedPairs }}{{ printf "    %s = %s\n" .Name .Value }}{{ end -}}
+    {{- print "\n  Annotations:\n\n" -}}
+    {{- with .Annotations.Remove (stringSlice "summary" "description") -}}
+      {{- range .SortedPairs }}{{ printf "    %s = %s\n" .Name .Value }}{{ end -}}
+    {{- end -}}
+    {{- print "\n  URLs:\n\n" -}}
+    {{- if len .GeneratorURL }}{{ printf "    Source: %s\n" .GeneratorURL }}{{ end -}}
+  {{- end -}}
+{{ end }}
+
+
+{{ define "email.text" }}
+  {{- template "common.text.body" . -}}
+{{ end }}
+
+{{ define "email.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ template "common.text.title" . }}</title>
+  <style></style>
+</head>
+<body>
+  {{ template "common.text.body" . }}
+</body>
+</html>
+{{ end }}
+
+
+{{ define "slack.title" }}
+  {{- template "common.text.title" . -}}
+{{ end }}
+
+{{ define "slack.text" }}
+  {{- template "common.text.body" . -}}
+{{ end }}

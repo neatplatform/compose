@@ -1,0 +1,130 @@
+## https://grafana.com/docs/tempo/latest/configuration
+##
+
+target: all
+multitenancy_enabled: false
+
+# https://grafana.com/docs/tempo/latest/configuration/#usage-report
+usage_report:
+  reporting_enabled: false  # Disable anonymous usage reporting
+
+# https://grafana.com/docs/tempo/latest/configuration/#server
+server:
+  log_level: info
+  log_format: json
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+
+# https://grafana.com/docs/tempo/latest/configuration/#distributor
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+        grpc:
+          endpoint: 0.0.0.0:4317
+
+# https://grafana.com/docs/tempo/latest/configuration/#ingester
+ingester:
+  trace_idle_period: 10s     # Idle time before a trace is flushed to the WAL.
+  trace_live_period: 30s     # Max time a trace stays live before forced WAL flush, regardless of idle period.
+  flush_check_period: 30s    # Interval for sweeping tenants and advancing traces through live -> WAL -> completed.
+  max_block_bytes: 10485760  # Block size threshold that triggers a block cut.
+  max_block_duration: 5m     # Max block age before it is cut.
+  lifecycler:
+    ring:
+      replication_factor: 1
+
+# https://grafana.com/docs/tempo/latest/configuration/#query-frontend
+query_frontend:
+  search:
+    concurrent_jobs: 10
+    default_result_limit: 10
+    max_result_limit: 100
+    max_duration: 168h  # 7 days
+    duration_slo: 5s
+
+# https://grafana.com/docs/tempo/latest/configuration/#querier
+querier:
+  max_concurrent_queries: 10
+  frontend_worker:
+    frontend_address: ""  # No separate query-frontend in monolithic mode
+  search:
+    query_timeout: 30s
+
+# https://grafana.com/docs/tempo/latest/configuration/#storage
+storage:
+  trace:
+    backend: local
+    local:
+      path: /data/blocks
+    wal:
+      path: /data/wal
+
+# https://grafana.com/docs/tempo/latest/configuration/#compactor
+compactor:
+  ring:
+    kvstore:
+      store: inmemory
+
+  # https://grafana.com/docs/tempo/latest/configuration/#compaction
+  compaction:
+    retention_concurrency: 1
+    block_retention: 72h
+    compacted_block_retention: 1h
+    compaction_window: 1h
+    compaction_cycle: 30s
+    max_time_per_tenant: 5m
+
+# https://grafana.com/docs/tempo/latest/configuration/#backend-worker
+backend_worker:
+  ring:
+    kvstore:
+      store: inmemory
+
+# https://grafana.com/docs/tempo/latest/configuration/#metrics-generator
+metrics_generator:
+  ring:
+    kvstore:
+      store: inmemory
+  processor:
+    service_graphs:
+      wait: 10s         # How long to wait for an edge to be completed
+      max_items: 10000  # Number of edges that will be stored
+      workers: 1        # Number of workers to process the edges
+      histogram_buckets: [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
+      dimensions:           # Resource and span attributes added as additional dimensions to the metrics
+        - http.method       # Distinguishes read vs write traffic on edges
+        - db.system         # Identifies database edges (low cardinality)
+        - messaging.system  # Identifies async edges (low cardinality)
+    span_metrics:
+      histogram_buckets: [0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 0.128, 0.256, 0.512, 1.024, 2.048, 4.096, 8.192]
+      dimensions:           # Resource and span attributes added as additional dimensions to the metrics
+        - http.method       # HTTP verb
+        - http.route        # HTTP request templated path (low cardinality)
+        - http.status_code  # HTTP response status code
+  registry:
+    collection_interval: 10s
+    stale_duration: 15m
+    external_labels:
+      source: tempo
+  storage:
+    path: /data/generator/wal
+    remote_write:
+      - url: http://mimir:9009/api/v1/push
+        send_exemplars: true
+  traces_storage:
+    path: /data/generator/traces
+
+# https://grafana.com/docs/tempo/latest/configuration/#overrides
+overrides:
+  defaults:
+    ingestion:
+      rate_limit_bytes: 10000000
+      burst_size_bytes: 20000000
+      max_traces_per_user: 10000
+    metrics_generator:
+      processors:
+        - service-graphs
+        - span-metrics

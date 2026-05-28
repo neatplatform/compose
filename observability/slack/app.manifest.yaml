@@ -1,0 +1,73 @@
+## https://docs.slack.dev/reference/app-manifest
+##
+
+display_information:
+  name: Robin
+  background_color: "#161a1d"
+  description: A small Slack app for demo
+  long_description: >
+    This example Slack app is designed for demos and experimentation.
+    It helps you build, test, and troubleshoot Slack app workflows across a range of scenarios.
+    Typical use cases include alerting, monitoring, and broader observability workflows.
+    You can also use it to deliver Alertmanager notifications directly to Slack.
+
+oauth_config:
+  pkce_enabled: false
+  scopes:
+    bot:
+      - commands
+      - chat:write
+      - app_mentions:read
+      - channels:read
+      - channels:history
+      - groups:history
+      - im:history
+      - reactions:read
+      - reactions:write
+      - files:read
+
+features:
+
+  bot_user:
+    display_name: Robin
+    always_online: true
+
+  app_home:
+    home_tab_enabled: true
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+
+  shortcuts:
+    - name: Create Task
+      type: global
+      callback_id: create_task
+      description: Create a task from anywhere
+    - name: Record Message
+      type: message
+      callback_id: record_message
+      description: Record a message externally
+
+  slash_commands:
+    - command: /hello
+      url: https://example.com/commands
+      description: Say hello
+      usage_hint: "[name]"
+      should_escape: false
+
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+  is_mcp_enabled: false
+
+  event_subscriptions:
+    request_url: https://example.com/events
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.im
+
+  interactivity:
+    is_enabled: true
+    request_url: https://example.com/interactions
+    message_menu_options_url: https://example.com/options

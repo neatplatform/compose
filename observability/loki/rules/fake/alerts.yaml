@@ -1,0 +1,77 @@
+## Loki supports Prometheus-compatible alerting rules and allows LogQL expressions.
+##
+## https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules
+## https://prometheus.io/docs/practices/alerting
+##
+
+groups:
+
+  - name: log-alerts
+    interval: 1m
+    limit: 10
+    rules:
+
+      - alert: HighLogErrorRate
+        expr: >
+          sum by (name, environment, tenant) (
+            rate({name=~".+", level=~"error|Error|ERROR|critical|Critical|CRITICAL|fatal|Fatal|FATAL"}[2m])
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          scope: service
+          team: backend
+          ruler: loki
+        annotations:
+          summary: "High error log rate from {{ $labels.name }}"
+          description: >
+            {{ $labels.name }} is emitting {{ printf "%.2f" $value }} error log lines/sec (threshold: 0.5/sec)
+            in {{ $labels.environment }}:{{ $labels.tenant }}.
+          runbook_url: "TBD"
+          dashboard_url: "TBD"
+
+      - alert: LogErrorRatioWarning
+        expr: >
+          sum by (name, environment, tenant) (
+            rate({name=~".+", level=~"error|Error|ERROR|critical|Critical|CRITICAL|fatal|Fatal|FATAL"}[2m])
+          )
+          /
+          sum by (name, environment, tenant) (
+            rate({name=~".+"}[2m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          scope: service
+          team: backend
+          ruler: loki
+        annotations:
+          summary: "Elevated error log ratio from {{ $labels.name }}"
+          description: >
+            {{ $labels.name }} error log ratio is {{ $value | humanizePercentage }} (threshold: 5%)
+            in {{ $labels.environment }}:{{ $labels.tenant }}.
+          runbook_url: "TBD"
+          dashboard_url: "TBD"
+
+      - alert: LogErrorRatioCritical
+        expr: >
+          sum by (name, environment, tenant) (
+            rate({name=~".+", level=~"error|Error|ERROR|critical|Critical|CRITICAL|fatal|Fatal|FATAL"}[2m])
+          )
+          /
+          sum by (name, environment, tenant) (
+            rate({name=~".+"}[2m])
+          ) > 0.10
+        for: 2m
+        labels:
+          severity: critical
+          scope: service
+          team: backend
+          ruler: loki
+        annotations:
+          summary: "Critical error log ratio from {{ $labels.name }}"
+          description: >
+            {{ $labels.name }} error log ratio is {{ $value | humanizePercentage }} (threshold: 10%)
+            in {{ $labels.environment }}:{{ $labels.tenant }}.
+          runbook_url: "TBD"
+          dashboard_url: "TBD"

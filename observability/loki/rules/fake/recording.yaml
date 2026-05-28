@@ -1,0 +1,37 @@
+## Loki supports Prometheus-compatible recording rules and allows metric queries over logs.
+##
+## Recording rules precompute expensive or frequently used expressions,
+## storing results as new metrics written to a Prometheus-compatible remote-write endpoint on a defined interval.
+##
+## https://prometheus.io/docs/prometheus/latest/configuration/recording_rules
+## https://prometheus.io/docs/practices/rules
+##
+
+groups:
+
+  - name: log-recording-rules
+    interval: 1m
+    limit: 10
+    rules:
+
+      - record: service:log_lines:rate2m
+        expr: >
+          sum by (name, environment, tenant, level) (
+            rate({name=~".+"}[2m])
+          )
+
+      - record: service:log_errors:rate2m
+        expr: >
+          sum by (name, environment, tenant) (
+            rate({name=~".+", level=~"error|Error|ERROR|critical|Critical|CRITICAL|fatal|Fatal|FATAL"}[2m])
+          )
+
+      - record: service:log_error_ratio:rate2m
+        expr: >
+          sum by (name, environment, tenant) (
+            rate({name=~".+", level=~"error|Error|ERROR|critical|Critical|CRITICAL|fatal|Fatal|FATAL"}[2m])
+          )
+          /
+          sum by (name, environment, tenant) (
+            rate({name=~".+"}[2m])
+          )

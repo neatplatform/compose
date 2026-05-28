@@ -1,0 +1,420 @@
+{
+  "channel": "general",
+  "text": "This test message includes interactive *Block Kit* elements.",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Please fill in the form below:"
+      }
+    },
+    {
+      "type": "actions",
+      "block_id": "form_block",
+      "elements": [
+        {
+          "type": "button",
+          "action_id": "fill_button",
+          "value": "fill_1234",
+          "text": {
+            "type": "plain_text",
+            "text": "Fill in"
+          }
+        }
+      ]
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Do you approve this request?"
+      }
+    },
+    {
+      "type": "actions",
+      "block_id": "approval_block",
+      "elements": [
+        {
+          "type": "button",
+          "action_id": "approve_button",
+          "value": "approve_1234",
+          "style": "primary",
+          "text": {
+            "type": "plain_text",
+            "text": "Approve"
+          }
+        },
+        {
+          "type": "button",
+          "action_id": "reject_button",
+          "value": "reject_1234",
+          "style": "danger",
+          "text": {
+            "type": "plain_text",
+            "text": "Reject"
+          }
+        }
+      ]
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Which *foods* do you like?"
+      }
+    },
+    {
+      "type": "actions",
+      "block_id": "food_block",
+      "elements": [
+        {
+          "type": "checkboxes",
+          "action_id": "food_checks",
+          "options": [
+            {
+              "value": "beef",
+              "text": {
+                "type": "plain_text",
+                "text": "🥩 Beef"
+              }
+            },
+            {
+              "value": "chicken",
+              "text": {
+                "type": "plain_text",
+                "text": "🍗 Chicken"
+              }
+            },
+            {
+              "value": "fish",
+              "text": {
+                "type": "plain_text",
+                "text": "🐟 Fish"
+              }
+            },
+            {
+              "value": "vegetables",
+              "text": {
+                "type": "plain_text",
+                "text": "🥦 Vegetables"
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Which *team* are you in?"
+      }
+    },
+    {
+      "type": "actions",
+      "block_id": "team_block",
+      "elements": [
+        {
+          "type": "radio_buttons",
+          "action_id": "team_radio",
+          "options": [
+            {
+              "value": "frontend",
+              "text": {
+                "type": "plain_text",
+                "text": "🎨 Frontend"
+              }
+            },
+            {
+              "value": "backend",
+              "text": {
+                "type": "plain_text",
+                "text": "⚙️ Backend"
+              }
+            },
+            {
+              "value": "infrastructure",
+              "text": {
+                "type": "plain_text",
+                "text": "🏗️ Infrastructure"
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Pick a *fruit* from the menu:"
+      }
+    },
+    {
+      "type": "actions",
+      "block_id": "fruit_block",
+      "elements": [
+        {
+          "type": "static_select",
+          "action_id": "fruit_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Pick a fruit"
+          },
+          "options": [
+            {
+              "value": "peach",
+              "text": {
+                "type": "plain_text",
+                "text": "🍑 Peach"
+              }
+            },
+            {
+              "value": "grape",
+              "text": {
+                "type": "plain_text",
+                "text": "🍇 Grape"
+              }
+            },
+            {
+              "value": "kiwi",
+              "text": {
+                "type": "plain_text",
+                "text": "🥝 Kiwi"
+              }
+            },
+            {
+              "value": "watermelon",
+              "text": {
+                "type": "plain_text",
+                "text": "🍉 Watermelon"
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "type": "section",
+      "block_id": "sports_block",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Select your *sports* from the menu:"
+      },
+      "accessory": {
+        "type": "multi_static_select",
+        "action_id": "sport_select",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Select sports"
+        },
+        "options": [
+          {
+            "value": "football",
+            "text": {
+              "type": "plain_text",
+              "text": "⚽ Football"
+            }
+          },
+          {
+            "value": "basketball",
+            "text": {
+              "type": "plain_text",
+              "text": "🏀 Basketball"
+            }
+          },
+          {
+            "value": "volleyball",
+            "text": {
+              "type": "plain_text",
+              "text": "🏐 Volleyball"
+            }
+          },
+          {
+            "value": "tennis",
+            "text": {
+              "type": "plain_text",
+              "text": "🎾 Tennis"
+            }
+          },
+          {
+            "value": "swimming",
+            "text": {
+              "type": "plain_text",
+              "text": "🏊 Swimming"
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Choose a *location* from the menu:"
+      }
+    },
+    {
+      "type": "actions",
+      "block_id": "location_block",
+      "elements": [
+        {
+          "type": "external_select",
+          "action_id": "location_select",
+          "min_query_length": 2,
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select a location"
+          }
+        }
+      ]
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Pick a *due date* for this task:"
+      }
+    },
+    {
+      "type": "actions",
+      "block_id": "due_date_block",
+      "elements": [
+        {
+          "type": "datepicker",
+          "action_id": "due_date_pick",
+          "initial_date": "2030-05-20",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Pick a date"
+          }
+        }
+      ]
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Pick a *due time* for this task:"
+      }
+    },
+    {
+      "type": "actions",
+      "block_id": "due_time_block",
+      "elements": [
+        {
+          "type": "timepicker",
+          "action_id": "due_time_pick",
+          "initial_time": "12:00",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Pick a time"
+          }
+        }
+      ]
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Pick a *due date and time* for this task:"
+      }
+    },
+    {
+      "type": "actions",
+      "block_id": "due_datetime_block",
+      "elements": [
+        {
+          "type": "datetimepicker",
+          "action_id": "due_datetime_pick",
+          "initial_date_time": 1906127700
+        }
+      ]
+    },
+
+    {
+      "type": "section",
+      "block_id": "task_block",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Choose an *action* for this task:"
+      },
+      "accessory": {
+        "type": "overflow",
+        "action_id": "actions_menu",
+        "options": [
+          {
+            "value": "task_done",
+            "text": {
+              "type": "plain_text",
+              "text": "Done"
+            }
+          },
+          {
+            "value": "task_assign",
+            "text": {
+              "type": "plain_text",
+              "text": "Assign"
+            }
+          },
+          {
+            "value": "task_snooze",
+            "text": {
+              "type": "plain_text",
+              "text": "Snooze"
+            }
+          },
+          {
+            "value": "task_archive",
+            "text": {
+              "type": "plain_text",
+              "text": "Archive"
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Was this *response* helpful?"
+      }
+    },
+    {
+      "type": "context_actions",
+      "block_id": "feedback_block",
+      "elements": [
+        {
+          "type": "feedback_buttons",
+          "action_id": "response_feedback",
+          "positive_button": {
+            "value": "positive_feedback",
+            "text": {
+              "type": "plain_text",
+              "text": "Good"
+            }
+          },
+          "negative_button": {
+            "value": "negative_feedback",
+            "text": {
+              "type": "plain_text",
+              "text": "Bad"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

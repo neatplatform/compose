@@ -1,0 +1,89 @@
+## https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning
+##
+## https://grafana.com/docs/grafana/latest/alerting/alerting-rules/templates/language
+## https://grafana.com/docs/grafana/latest/alerting/alerting-rules/templates/reference
+##
+
+apiVersion: 1
+
+groups:
+
+  - orgId: 1
+    name: grafana-alert-rules
+    folder: Alert Rules
+    interval: 1m
+    rules:
+
+      - uid: service-traffic-without-logs
+        title: Service Traffic without Logs
+        data:
+
+          # Metric request rate from Mimir
+          - refId: MetricRR
+            datasourceUid: mimir
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: |
+                sum by (name) (
+                  rate(http_requests_duration_seconds_count[2m])
+                )
+
+          # Reduce to scalar — last known request rate
+          - refId: LastMetricRR
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              reducer: last
+              settings:
+                  mode: dropNN
+              expression: MetricRR
+
+          # Log presence check from Loki
+          - refId: LogRR
+            datasourceUid: loki
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: |
+                count by (name) (
+                  rate({name=~".+"}[5m])
+                )
+
+          # Reduce to scalar — last known log presence
+          - refId: LastLogRR
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              reducer: last
+              settings:
+                mode: dropNN
+              expression: LogRR
+
+          # Service has traffic, but logs are absent
+          - refId: TrafficWithoutLogs
+            datasourceUid: __expr__
+            model:
+              type: math
+              expression: $LastMetricRR > 0 && $LastLogRR == 0
+
+        condition: TrafficWithoutLogs
+        isPaused: false
+        noDataState: NoData  # State when no data is returned: NoData, Alerting, OK
+        execErrState: Error  # State when query execution fails: Error, Alerting, OK
+        for: 5m
+        labels:
+          severity: warning
+          scope: service
+          team: infra
+          ruler: grafana
+        annotations:
+          summary: "{{ $labels.name }} receiving traffic but emitting no logs"
+          description: >
+            {{ $labels.name }} has active traffic according to metrics but has emitted no logs in the last 5 minutes.
+            The logging pipeline may be broken or the service logger may have stopped working.
+            Investigate to ensure logs are being emitted and collected properly.
+          runbook_url: "TBD"
+          dashboard_url: "TBD"

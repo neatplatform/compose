@@ -1,0 +1,22 @@
+// https://grafana.com/docs/alloy/latest/reference/components/pyroscope/pyroscope.scrape
+//
+
+pyroscope.scrape "self" {
+  targets = [
+    {"__address__" = "localhost:12345", "service_name"="alloy", "job"="alloy"},
+  ]
+
+  scrape_interval          = "20s"
+  delta_profiling_duration = "15s"
+  forward_to               = [pyroscope.relabel.default.receiver]
+}
+
+pyroscope.scrape "services" {
+  targets = [
+    {"__address__" = "host.internal:8080", "service_name"="host:8080", "job"="host:8080"},
+  ]
+
+  scrape_interval          = "20s"
+  delta_profiling_duration = "15s"
+  forward_to               = [pyroscope.relabel.default.receiver]
+}

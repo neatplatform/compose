@@ -1,0 +1,86 @@
+## https://grafana.com/docs/pyroscope/latest/configure-server
+## https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/
+##
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#configuration-parameters
+target: all
+multitenancy_enabled: false
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#analytics
+analytics:
+  reporting_enabled: false  # Disable anonymous usage reporting
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#server
+server:
+  log_level: info
+  log_format: json
+  http_listen_port: 4040
+  grpc_listen_port: 9095
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#distributor
+distributor:
+  ring:
+    kvstore:
+      store: inmemory
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#ingester
+ingester:
+  lifecycler:
+    ring:
+      replication_factor: 1
+      kvstore:
+        store: inmemory
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#query_frontend
+frontend:
+  scheduler_worker_concurrency: 1
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#frontend_worker
+frontend_worker:
+  max_concurrent: 1
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#query_scheduler
+query_scheduler:
+  max_outstanding_requests_per_tenant: 100
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#querier
+querier:
+  query_store_after: 4h
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#store_gateway
+store_gateway:
+  sharding_ring:
+    replication_factor: 1
+    kvstore:
+      store: inmemory
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#compactor
+compactor:
+  compaction_interval: 30m
+  compaction_retries: 3
+  compaction_concurrency: 1
+  cleanup_interval: 15m
+  cleanup_concurrency: 1
+  deletion_delay: 12h
+  sharding_ring:
+    kvstore:
+      store: inmemory
+
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#limits
+limits:
+  # Ingestion rate limits
+  ingestion_rate_mb: 4
+  ingestion_burst_size_mb: 8
+
+  # Data cardinality limits
+  max_label_name_length: 512
+  max_label_value_length: 1024
+  max_label_names_per_series: 20
+
+  # Global data limits
+  max_global_series_per_tenant: 5000
+
+  # Query limits
+  max_query_lookback: 1w
+  max_query_length: 1d
+  max_query_parallelism: 10

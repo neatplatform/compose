@@ -1,0 +1,116 @@
+## https://grafana.com/docs/grafana/latest/administration/provisioning/#data-sources
+## https://grafana.com/docs/grafana/latest/datasources
+##
+
+apiVersion: 1
+ 
+datasources:
+
+  # https://grafana.com/docs/grafana/latest/datasources/prometheus/configure
+  - name: Mimir
+    type: prometheus
+    uid: mimir
+    access: proxy
+    url: http://mimir:9009/prometheus
+    isDefault: true
+    editable: true
+    jsonData:
+      prometheusType: Mimir              # Enable Mimir-specific features
+      httpMethod: POST                   # Use POST for queries to support larger query payloads
+      manageAlerts: true                 # Manage Mimir-managed alerts in Grafana Alerting UI
+      alertmanagerUid: grafana           # Route Mimir-managed alerts to the built-in Grafana Alertmanager
+      allowAsRecordingRulesTarget: true  # Allow Mimir to be used as a target for writing Grafana-managed recording rules
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: tempo
+          urlDisplayLabel: View Trace
+
+  # https://grafana.com/docs/grafana/latest/datasources/loki/configure-loki-data-source
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: true
+    jsonData:
+      timeout: 60               # HTTP request timeout in seconds
+      maxLines: 1000            # Maximum number of log lines returned by Loki
+      manageAlerts: true        # Manage Loki-managed alerts in Grafana Alerting UI
+      alertmanagerUid: grafana  # Route Loki-managed alerts to the built-in Grafana Alertmanager
+      derivedFields:            # Extract new fields from logs and create a link from the value of the field
+        - name: TraceID
+          matcherRegex: '"?(?:traceID|traceId|trace_id)"?\s*[=:]\s*"?([a-fA-F0-9]{16,32})"?'
+          url: '$${__value.raw}'  # Interpreted as query for the datasource
+          datasourceUid: tempo
+          urlDisplayLabel: View Trace
+        - name: SpanID
+          matcherRegex: '"?(?:spanID|spanId|span_id)"?\s*[=:]\s*"?([a-fA-F0-9]{16})"?'
+          url: '$${__value.raw}'
+          datasourceUid: tempo
+          urlDisplayLabel: View Span
+
+  # https://grafana.com/docs/grafana/latest/datasources/tempo/configure-tempo-data-source
+  # https://grafana.com/docs/grafana/latest/datasources/tempo/configure-tempo-data-source/provision
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: false
+    editable: true
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        filterBySpanID: false
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        tags:  # Span attributes to labels mapping
+          - key: service.name
+            value: service_name
+        customQuery: false
+        query: ''
+      tracesToMetrics:
+        datasourceUid: mimir
+        spanStartTimeShift: '-2m'
+        spanEndTimeShift: '2m'
+        tags:  # Span attributes to labels mapping
+          - key: service.name
+            value: service_name
+        queries: []
+      tracesToProfiles:
+        datasourceUid: pyroscope
+        profileTypeId: process_cpu:cpu:nanoseconds:cpu:nanoseconds
+        tags:  # Span attributes to labels mapping
+          - key: service.name
+            value: service_name
+        customQuery: false
+        query: ''
+      serviceMap:
+        datasourceUid: mimir
+      nodeGraph:
+        enabled: true
+
+  # https://grafana.com/docs/grafana/latest/datasources/pyroscope/configure-pyroscope-data-source
+  - name: Pyroscope
+    type: grafana-pyroscope-datasource
+    uid: pyroscope
+    access: proxy
+    url: http://pyroscope:4040
+    isDefault: false
+    editable: true
+    jsonData:
+      minStep: 15s
+
+  # https://grafana.com/docs/grafana/latest/datasources/alertmanager
+  - name: Prometheus Alertmanager
+    type: alertmanager
+    uid: grafana-alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    isDefault: false
+    editable: true
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: true

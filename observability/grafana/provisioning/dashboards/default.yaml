@@ -1,0 +1,16 @@
+## https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+## https://grafana.com/docs/grafana/latest/dashboards
+##
+
+apiVersion: 1
+
+providers:
+  - name: Default
+    orgId: 1
+    folder: Service Dashboards
+    folderUid: service-dashboards
+    type: file
+    updateIntervalSeconds: 10
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards
