@@ -55,6 +55,19 @@ loki.relabel "default" {
     action = "labeldrop"
     regex  = "^env$"
   }
+
+  rule {
+    action        = "replace"
+    source_labels = ["msg"]
+    target_label  = "message"
+    regex         = "(.+)"
+    replacement   = "$1"
+  }
+
+  rule {
+    action = "labeldrop"
+    regex  = "^msg$"
+  }
 }
 
 // https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process

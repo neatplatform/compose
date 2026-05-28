@@ -1,12 +1,11 @@
 SHELL := /bin/bash
 
 
-.PHONY: prep
-prep:
-	@envsubst < alertmanager/config.yaml.tmpl > alertmanager/config.yaml
+# -------------------------------------------------- CONTAINER --------------------------------------------------
 
 .PHONY: up
-up: prep
+up:
+	@envsubst < alertmanager/config.yaml.tmpl > alertmanager/config.yaml
 	@podman compose -f compose.yaml up -d
 
 .PHONY: list
@@ -38,6 +37,8 @@ logs:
 	   fi; \
 	 done
 
+# -------------------------------------------------- API --------------------------------------------------
+
 .PHONY: loki-rules
 loki-rules:
 	@curl -s http://localhost:5100/loki/api/v1/rules | yq
@@ -57,3 +58,10 @@ grafana-contactpoints:
 .PHONY: grafana-policies
 grafana-policies:
 	@curl -s http://localhost:7200/api/v1/provisioning/policies/export?format=json | jq
+
+# -------------------------------------------------- MISC --------------------------------------------------
+
+.PHONY: echo-svc
+echo-svc:
+	@cd volt && \
+	 go run main.go service echo | tee ../logs/volt.service.echo.log

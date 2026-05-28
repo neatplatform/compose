@@ -365,4 +365,4 @@ services:
       - ./grafana:/etc/grafana:ro
     command:
       # https://grafana.com/docs/grafana/latest/administration/cli
-      -  --config=/etc/grafana/config.ini
+      - --config=/etc/grafana/config.ini

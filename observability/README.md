@@ -19,6 +19,9 @@ make down  # Stop the observability stack
 make list  # Show all running containers
 make logs  # Show a container logs
 
+# Start a local echo service on port 8080 to emit logs and metrics.
+make echo-svc
+
 open http://localhost:7200
 ```
 
