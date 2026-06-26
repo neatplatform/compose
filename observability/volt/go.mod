@@ -1,14 +1,14 @@
 module github.com/neatplatform/compose/observability/volt
 
-go 1.26.2
+go 1.26.4
 
 require (
-	github.com/fluent/fluent-logger-golang v1.10.1
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
-	github.com/grafana/loki/pkg/push v0.0.0-20260527161227-7e76a647dcea
+	github.com/grafana/loki/pkg/push v0.0.0-20260624180310-4a3826309904
 	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/prometheus v0.311.3
+	github.com/prometheus/prometheus v0.312.0
+	github.com/tinylib/msgp v1.6.4
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.20.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.20.0
@@ -23,7 +23,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
 	golang.ngrok.com/ngrok/v2 v2.1.4
-	golang.org/x/text v0.37.0
+	golang.org/x/text v0.38.0
 )
 
 require (
@@ -41,7 +41,6 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/tinylib/msgp v1.3.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.44.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
