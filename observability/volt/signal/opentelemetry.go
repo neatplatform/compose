@@ -200,12 +200,12 @@ func sendOTelLog(ctx context.Context, logger log.Logger, t time.Time, level, mes
 	r.SetObservedTimestamp(t)
 	r.SetSeverity(sev)
 	r.SetSeverityText(level)
-	r.SetBody(log.StringValue(message))
+	r.SetBody(attribute.StringValue(message))
 
 	// Add the fields
 	for i := 0; i+1 < len(kv); i += 2 {
 		k, v := kv[i], kv[i+1]
-		r.AddAttributes(log.String(k, v))
+		r.AddAttributes(attribute.String(k, v))
 	}
 
 	logger.Emit(ctx, r)

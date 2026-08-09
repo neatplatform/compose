@@ -1,0 +1,131 @@
+## https://prometheus.io/docs/alerting/latest/configuration
+## https://prometheus.io/docs/alerting/latest/notifications
+##
+
+##
+## Alertmanager bundles incoming alerts into groups before sending notifications,
+## avoiding a flood of individual messages when multiple related things go wrong.
+##
+##   • group_by           The labels by which incoming alerts are grouped.
+##   • group_wait         How long to wait after seeing the first alert in a new group before sending the initial notification.
+##                        Extra alerts that arrive for the same group within this window are bundled into that first message.
+##   • group_interval     How long to wait before sending a follow-up for changes to the group
+##                        after a group has already fired its first notification.
+##   • repeat_interval    How long to wait before re-sending the same notification as a reminder,
+##                        if a group is still firing and nothing has changed.
+##
+## Alertmanager evaluates routes as a tree, top-down, starting at the root route.
+## The root route has no matchers, so it matches every alert.
+##
+## Routing flow for each incoming alert:
+##
+##   1. The alert first enters the root route.
+##   2. Alertmanager evaluates child routes in order.
+##      • If a child matches, that child receiver handles the alert and evaluation stops unless `continue: true` is set.
+##   3. If no child matches, Alertmanager falls back to the root route receiver.
+##
+## In practice, the root receiver acts as a catch-all for alerts that do not match any more specific child route.
+##
+
+# https://prometheus.io/docs/alerting/latest/configuration/#file-layout-and-global-settings
+global:
+  resolve_timeout: 5m
+
+  # SMTP configurations
+  smtp_smarthost: mailpit:1025
+  smtp_from: alertmanager@example.com
+  smtp_require_tls: false
+
+  # Slack configurations
+  slack_app_token: ''
+  slack_app_url: 'https://slack.com/api/chat.postMessage'
+
+templates:
+  - '/etc/alertmanager/templates.tmpl'
+
+# https://prometheus.io/docs/alerting/latest/configuration/#route
+route:
+  receiver: Default
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+
+    - receiver: Critical
+      matchers:
+        - severity = critical
+      group_wait: 10s
+      group_interval: 2m
+      repeat_interval: 1h
+
+    - receiver: Warning
+      matchers:
+        - severity = warning
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+# https://prometheus.io/docs/alerting/latest/configuration/#receiver
+receivers:
+
+  - name: Default
+    # https://prometheus.io/docs/alerting/latest/configuration/#email_config
+    email_configs:
+      - to: notifications@example.com
+        send_resolved: true
+        text: '{{ template "email.text" . }}'
+        html: '{{ template "email.html" . }}'
+    # https://prometheus.io/docs/alerting/latest/configuration/#webhook_config
+    webhook_configs:
+      - url: http://alert-receiver:8080/webhook
+        send_resolved: true
+
+  - name: Critical
+    # https://prometheus.io/docs/alerting/latest/configuration/#email_config
+    email_configs:
+      - to: notifications@example.com
+        send_resolved: true
+        text: '{{ template "email.text" . }}'
+        html: '{{ template "email.html" . }}'
+    # https://prometheus.io/docs/alerting/latest/configuration/#slack_config
+    slack_configs:
+      - channel: '#alerts'
+        send_resolved: true
+        color: '{{ template "common.color.red" . }}'
+        title: '{{ template "slack.title" . }}'
+        text: '{{ template "slack.text" . }}'
+    # https://prometheus.io/docs/alerting/latest/configuration/#webhook_config
+    webhook_configs:
+      - url: http://alert-receiver:8080/webhook
+        send_resolved: true
+
+  - name: Warning
+    # https://prometheus.io/docs/alerting/latest/configuration/#email_config
+    email_configs:
+      - to: notifications@example.com
+        send_resolved: true
+        text: '{{ template "email.text" . }}'
+        html: '{{ template "email.html" . }}'
+    # https://prometheus.io/docs/alerting/latest/configuration/#slack_config
+    slack_configs:
+      - channel: '#alerts'
+        send_resolved: true
+        color: '{{ template "common.color.yellow" . }}'
+        title: '{{ template "slack.title" . }}'
+        text: '{{ template "slack.text" . }}'
+    # https://prometheus.io/docs/alerting/latest/configuration/#webhook_config
+    webhook_configs:
+      - url: http://alert-receiver:8080/webhook
+        send_resolved: true
+
+# Inhibition suppresses notifications for certain alerts if other alerts are already firing,
+# avoiding a burst of notifications and reducing noise for the same root cause.
+# https://prometheus.io/docs/alerting/latest/configuration/#inhibit_rule
+inhibit_rules:
+
+  # If a critical alert is firing for an instance, suppress warning alerts for the same instance.
+  - source_matchers: [severity="critical"]
+    target_matchers: [severity="warning"]
+    equal: [alertname, instance]

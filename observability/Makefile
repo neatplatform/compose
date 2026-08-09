@@ -20,7 +20,7 @@ down:
 clean:
 	@podman volume ls -q --filter "label=io.podman.compose.project=observability" | xargs podman volume rm -f
 	@rm -rf ./logs
-	@rm alertmanager/config.yaml
+	@rm -f alertmanager/config.yaml
 
 .PHONY: logs
 logs:
