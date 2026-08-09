@@ -115,9 +115,7 @@ exporters:
   # Standard Output – For troubleshooting and demonstration purposes
   # https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/debugexporter
   debug:
-    verbosity: normal  # Change to `detailed` for full payload dumps
-    sampling_initial: 2
-    sampling_thereafter: 10
+    verbosity: detailed
 
   # Files (logs) – For troubleshooting and demonstration purposes
   # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter/fileexporter
