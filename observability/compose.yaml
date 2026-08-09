@@ -33,7 +33,7 @@ services:
   #   https://quay.io/repository/prometheus/node-exporter
   #
   node-exporter:
-    image: quay.io/prometheus/node-exporter:v1.11.1
+    image: quay.io/prometheus/node-exporter:v1.12.1
     container_name: node-exporter
     hostname: node-exporter
     restart: unless-stopped
@@ -52,7 +52,7 @@ services:
   #   https://github.com/google/cadvisor/pkgs/container/cadvisor
   #
   cadvisor:
-    image: ghcr.io/google/cadvisor:0.60.1
+    image: ghcr.io/google/cadvisor:0.60.5
     container_name: cadvisor
     hostname: cadvisor
     restart: unless-stopped
@@ -73,7 +73,7 @@ services:
   #   https://docs.fluentbit.io/manual/installation/downloads/docker
   #
   fluent-bit:
-    image: cr.fluentbit.io/fluent/fluent-bit:5.0.7
+    image: cr.fluentbit.io/fluent/fluent-bit:5.1.0
     container_name: fluent-bit
     hostname: fluent-bit
     restart: unless-stopped
@@ -104,7 +104,7 @@ services:
   #   https://hub.docker.com/r/otel/opentelemetry-collector-contrib
   #
   opentelemetry-collector:
-    image: otel/opentelemetry-collector-contrib:0.154.0
+    image: otel/opentelemetry-collector-contrib:0.158.0
     container_name: opentelemetry-collector
     hostname: opentelemetry-collector
     restart: unless-stopped
@@ -135,7 +135,7 @@ services:
   #   https://hub.docker.com/r/grafana/alloy
   #
   alloy:
-    image: grafana/alloy:v1.17.0
+    image: grafana/alloy:v1.18.1
     container_name: alloy
     hostname: alloy
     restart: unless-stopped
@@ -169,7 +169,7 @@ services:
   #   https://hub.docker.com/r/grafana/loki
   #
   loki:
-    image: grafana/loki:3.7.2
+    image: grafana/loki:3.7.6
     container_name: loki
     hostname: loki
     restart: unless-stopped
@@ -191,7 +191,7 @@ services:
   #   https://hub.docker.com/r/grafana/mimir
   #
   mimir:
-    image: grafana/mimir:3.1.1
+    image: grafana/mimir:3.1.4
     container_name: mimir
     hostname: mimir
     restart: unless-stopped
@@ -213,7 +213,7 @@ services:
   #   https://hub.docker.com/r/grafana/tempo
   #
   tempo:
-    image: grafana/tempo:2.10.7
+    image: grafana/tempo:3.0.2
     container_name: tempo
     hostname: tempo
     restart: unless-stopped
@@ -237,7 +237,7 @@ services:
   #   https://hub.docker.com/r/grafana/pyroscope
   #
   pyroscope:
-    image: grafana/pyroscope:2.1.0
+    image: grafana/pyroscope:2.2.1
     container_name: pyroscope
     hostname: pyroscope
     restart: unless-stopped
@@ -258,7 +258,7 @@ services:
   #   https://quay.io/repository/prometheus/alertmanager
   #
   alertmanager:
-    image: quay.io/prometheus/alertmanager:v0.33.0
+    image: quay.io/prometheus/alertmanager:v0.33.1
     container_name: alertmanager
     hostname: alertmanager
     restart: unless-stopped
@@ -282,7 +282,7 @@ services:
   #   https://hub.docker.com/r/axllent/mailpit
   #
   mailpit:
-    image: axllent/mailpit:v1.30.2
+    image: axllent/mailpit:v1.30.7
     container_name: mailpit
     hostname: mailpit
     restart: unless-stopped
@@ -320,7 +320,7 @@ services:
   #   https://hub.docker.com/r/grafana/grafana-image-renderer
   #
   renderer:
-    image: grafana/grafana-image-renderer:v5.8.11
+    image: grafana/grafana-image-renderer:v5.12.0
     container_name: renderer
     hostname: renderer
     restart: unless-stopped
@@ -341,7 +341,7 @@ services:
   #   https://hub.docker.com/r/grafana/grafana
   #
   grafana:
-    image: grafana/grafana:13.0.2
+    image: grafana/grafana:13.1.3
     container_name: grafana
     hostname: grafana
     restart: unless-stopped

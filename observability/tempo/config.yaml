@@ -25,17 +25,6 @@ distributor:
         grpc:
           endpoint: 0.0.0.0:4317
 
-# https://grafana.com/docs/tempo/latest/configuration/#ingester
-ingester:
-  trace_idle_period: 10s     # Idle time before a trace is flushed to the WAL.
-  trace_live_period: 30s     # Max time a trace stays live before forced WAL flush, regardless of idle period.
-  flush_check_period: 30s    # Interval for sweeping tenants and advancing traces through live -> WAL -> completed.
-  max_block_bytes: 10485760  # Block size threshold that triggers a block cut.
-  max_block_duration: 5m     # Max block age before it is cut.
-  lifecycler:
-    ring:
-      replication_factor: 1
-
 # https://grafana.com/docs/tempo/latest/configuration/#query-frontend
 query_frontend:
   search:
@@ -61,21 +50,6 @@ storage:
       path: /data/blocks
     wal:
       path: /data/wal
-
-# https://grafana.com/docs/tempo/latest/configuration/#compactor
-compactor:
-  ring:
-    kvstore:
-      store: inmemory
-
-  # https://grafana.com/docs/tempo/latest/configuration/#compaction
-  compaction:
-    retention_concurrency: 1
-    block_retention: 72h
-    compacted_block_retention: 1h
-    compaction_window: 1h
-    compaction_cycle: 30s
-    max_time_per_tenant: 5m
 
 # https://grafana.com/docs/tempo/latest/configuration/#backend-worker
 backend_worker:
@@ -114,8 +88,6 @@ metrics_generator:
     remote_write:
       - url: http://mimir:9009/api/v1/push
         send_exemplars: true
-  traces_storage:
-    path: /data/generator/traces
 
 # https://grafana.com/docs/tempo/latest/configuration/#overrides
 overrides:
@@ -124,6 +96,9 @@ overrides:
       rate_limit_bytes: 10000000
       burst_size_bytes: 20000000
       max_traces_per_user: 10000
+    compaction:
+      block_retention: 72h
+      compaction_window: 1h
     metrics_generator:
       processors:
         - service-graphs
