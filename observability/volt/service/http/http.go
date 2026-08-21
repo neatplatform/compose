@@ -54,27 +54,27 @@ type httpMetrics struct {
 func newHTTPMetrics() *httpMetrics {
 	reqGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "http_requests_active",
-			Help: "The number of in-flight HTTP requests",
+			Name: "incoming_http_requests_inflight",
+			Help: "The number of in-flight incoming http requests (server-side)",
 		},
-		[]string{"name", "req_method", "req_route"},
+		[]string{"service", "http_request_method", "http_route"},
 	)
 
 	reqCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "The total number of HTTP requests",
+			Name: "incoming_http_requests_total",
+			Help: "The total number of incoming http requests (server-side)",
 		},
-		[]string{"name", "req_method", "req_route", "resp_status"},
+		[]string{"service", "http_request_method", "http_route", "http_response_status_code"},
 	)
 
 	reqDuration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "http_requests_duration_seconds",
-			Help:    "The duration of HTTP requests in seconds",
-			Buckets: prometheus.DefBuckets,
+			Name:    "incoming_http_request_duration_milliseconds",
+			Help:    "The duration of incoming http requests in milliseconds (server-side)",
+			Buckets: []float64{1, 5, 10, 25, 50, 75, 100, 250, 500, 1000},
 		},
-		[]string{"name", "req_method", "req_route", "resp_status"},
+		[]string{"service", "http_request_method", "http_route", "http_response_status_code"},
 	)
 
 	reg := prometheus.NewRegistry()
@@ -145,7 +145,7 @@ func (s *service) withInstrumentation(next http.HandlerFunc) http.HandlerFunc {
 		status := strconv.Itoa(rw.status)
 
 		s.metrics.reqCounter.WithLabelValues(name, r.Method, route, status).Inc()
-		s.metrics.reqDuration.WithLabelValues(name, r.Method, route, status).Observe(duration.Seconds())
+		s.metrics.reqDuration.WithLabelValues(name, r.Method, route, status).Observe(float64(duration.Milliseconds()))
 
 		s.logger.Info("[http] request handled.",
 			slog.String("name", name),
