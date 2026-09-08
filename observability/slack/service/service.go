@@ -18,8 +18,7 @@ import (
 	"strconv"
 	"syscall"
 	"time"
-
-	"github.com/google/uuid"
+	"uuid"
 
 	"github.com/neatplatform/compose/observability/slack/client"
 	"github.com/neatplatform/compose/observability/slack/schema"
@@ -204,7 +203,7 @@ func (s *Service) withInstrumentation(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		route := r.URL.Path
-		req_uuid := uuid.NewString()
+		req_uuid := uuid.NewV4().String()
 
 		s.metrics.reqGauge.WithLabelValues(name, r.Method, route).Inc()
 		defer s.metrics.reqGauge.WithLabelValues(name, r.Method, route).Dec()

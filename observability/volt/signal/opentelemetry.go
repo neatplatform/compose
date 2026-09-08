@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 	"time"
+	"uuid"
 
-	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
@@ -72,7 +72,7 @@ func runOpenTelemetry(args []string) {
 
 		for i, msg := range messages {
 			sendOTelLog(ctx, logger, time.Now(), "info", msg,
-				"uuid", uuid.NewString(),
+				"uuid", uuid.NewV4().String(),
 			)
 
 			fmt.Printf("Sent log:  #%-2d  message=%s\n", i+1, msg)
@@ -125,7 +125,7 @@ func runOpenTelemetry(args []string) {
 			_, span := tracer.Start(ctx, fmt.Sprintf("demo-op-%d", i+1))
 
 			span.SetAttributes(
-				attribute.String("uuid", uuid.NewString()),
+				attribute.String("uuid", uuid.NewV4().String()),
 				attribute.String("message", msg),
 			)
 
