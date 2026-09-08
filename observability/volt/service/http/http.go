@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.ngrok.com/ngrok/v2"
@@ -133,7 +133,7 @@ func (s *service) withInstrumentation(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		route := r.URL.Path
-		req_uuid := uuid.NewString()
+		req_uuid := uuid.NewV4().String()
 
 		s.metrics.reqGauge.WithLabelValues(name, r.Method, route).Inc()
 		defer s.metrics.reqGauge.WithLabelValues(name, r.Method, route).Dec()

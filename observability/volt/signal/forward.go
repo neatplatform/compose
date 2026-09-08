@@ -7,8 +7,8 @@ import (
 	"os"
 	"sync"
 	"time"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -49,7 +49,7 @@ func runForward(args []string) {
 
 	for i, msg := range messages {
 		kvs := append(baseKV,
-			"uuid", uuid.NewString(),
+			"uuid", uuid.NewV4().String(),
 		)
 
 		if err := client.Send(time.Now(), "info", msg, kvs...); err != nil {

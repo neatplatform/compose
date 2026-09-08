@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	"github.com/golang/snappy"
-	"github.com/google/uuid"
 	"github.com/grafana/loki/pkg/push"
 )
 
@@ -63,7 +63,7 @@ func runLoki(args []string) {
 		)
 
 		metadata := []string{
-			"uuid", uuid.NewString(),
+			"uuid", uuid.NewV4().String(),
 		}
 
 		var data []byte
