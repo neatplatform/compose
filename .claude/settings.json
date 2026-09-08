@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "neatplatform-skills": {
+      "source": {
+        "source": "github",
+        "repo": "neatplatform/skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "dev@neatplatform-skills": true
+  }
+}

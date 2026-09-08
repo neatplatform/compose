@@ -1,6 +1,6 @@
 # BUILD STAGE
 # https://hub.docker.com/_/golang
-FROM golang:1.26.5-alpine AS builder
+FROM golang:1.27.1-alpine AS builder
 RUN apk add --no-cache git
 WORKDIR /app
 COPY . .
